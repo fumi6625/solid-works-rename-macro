@@ -2,7 +2,7 @@
 generate_bas.py
 RenameAndCopy.bas を Shift-JIS (CP932) エンコーディングで生成する。
 
-VBA エディタ（SolidWORKS / Excel）は Windows の ANSI エンコーディング
+VBA エディタ（SolidWORKS）は Windows の ANSI エンコーディング
 （日本語環境では CP932 / Shift-JIS）でファイルを読み込む。
 このスクリプトを実行することで、日本語が文字化けしない .bas ファイルを生成する。
 
@@ -19,7 +19,8 @@ VBA_CODE = r"""Attribute VB_Name = "RenameAndCopy"
 '   保存先フォルダを指定すると、親アセンブリおよびファイル名が
 '   「親ファイル名＋α」となっている子コンポーネントを
 '   「新しい親ファイル名＋α」の名前でコピーする。
-'   コピーされた親アセンブリは子ファイルと正しくリンクされる。
+'   Pack and Go API を使用するため、コピー後の親アセンブリは
+'   コピーされた子ファイルと正しくリンクされる。
 '
 ' 対応バージョン: SolidWORKS 2020 以降
 ' インポート方法: VBA エディタで [ファイル] → [ファイルのインポート]
@@ -63,7 +64,7 @@ Sub StartRenameAndCopy()
     parentDir  = GetFolderFromPath(parentPath)
     parentBase = GetBaseNameFromPath(parentPath)
 
-    ' ---- 子ファイル数カウント ----
+    ' ---- 子ファイル数カウント（確認ダイアログ用）----
     Dim col As New Collection
     CollectUniqueComponentPaths swModel, col
 
@@ -137,9 +138,9 @@ Sub StartRenameAndCopy()
         Exit Sub
     End If
 
-    ' ---- 実行 ----
-    Call ExecuteRenameAndCopy(swApp, swModel, parentPath, parentDir, _
-                              parentBase, newName, destFolder, col)
+    ' ---- 実行（Pack and Go を使用）----
+    Call ExecutePackAndGo(swModel, parentBase, newName, destFolder)
+
     Exit Sub
 
 ErrNoApp:
@@ -149,145 +150,111 @@ ErrNoApp:
 End Sub
 
 ' ============================================================
-' メイン実行処理
+' Pack and Go を使用してコピー＆参照更新を一括実行
 ' ============================================================
-Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
-                         parentPath As String, parentDir As String, _
-                         parentBase As String, newName As String, _
-                         destFolder As String, col As Collection)
+' SolidWORKS の Pack and Go API はファイルのコピーと
+' アセンブリ内の参照パス更新を一括で処理する。
+' 手動で ReplaceReferencedDocument を呼ぶ必要がない。
+' ============================================================
+Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
+                     newName As String, destFolder As String)
 
-    Dim oldPath      As String
-    Dim newPath      As String
-    Dim alpha        As String
-    Dim newAssyPath  As String
-    Dim newModel     As Object
-    Dim i            As Long
-    Dim successCount As Long
-    Dim failCount    As Long
-    Dim overwriteAll As Boolean
-    Dim skipAll      As Boolean
+    ' Pack and Go オブジェクトを取得
+    Dim packAndGo As Object
+    Set packAndGo = swModel.Extension.GetPackAndGo()
 
-    successCount = 0
-    failCount    = 0
-    overwriteAll = False
-    skipAll      = False
+    If packAndGo Is Nothing Then
+        MsgBox "Pack and Go API が利用できません。" & vbCrLf & _
+               "SolidWORKS のバージョンを確認してください。", vbCritical, "エラー"
+        Exit Sub
+    End If
 
-    ' 対象ファイルのマッピング作成
-    Dim mapCount  As Long
-    Dim mapOld()  As String
-    Dim mapNew()  As String
-    mapCount = 0
+    ' アセンブリに含まれる全ファイルリストを取得
+    Dim nCount As Long
+    nCount = packAndGo.GetDocumentCount()
 
-    ReDim mapOld(col.Count - 1)
-    ReDim mapNew(col.Count - 1)
+    If nCount = 0 Then
+        MsgBox "コンポーネントが見つかりません。" & vbCrLf & _
+               "アセンブリが正しく読み込まれているか確認してください。", _
+               vbExclamation, "警告"
+        Exit Sub
+    End If
 
-    Dim p As Variant
-    For Each p In col
-        oldPath = CStr(p)
-        If IsChildOfParent(oldPath, parentBase) Then
-            alpha = GetAlphaSuffix(oldPath, parentBase)
-            mapOld(mapCount) = oldPath
-            mapNew(mapCount) = destFolder & newName & alpha
-            mapCount = mapCount + 1
+    Dim fileNames() As String
+    ReDim fileNames(nCount - 1)
+    packAndGo.GetFileNames fileNames
+
+    ' 親名プレフィックスに一致するファイルのパスを新しい名前に変更
+    ' （一致しないファイルは元パスのまま → コピーされず元の場所を参照）
+    Dim i        As Long
+    Dim renamed  As Long
+    renamed = 0
+
+    For i = 0 To nCount - 1
+        Dim bn As String
+        bn = GetBaseNameFromPath(fileNames(i))
+
+        If StrComp(Left(bn, Len(parentBase)), parentBase, vbTextCompare) = 0 Then
+            Dim alpha As String
+            alpha = GetAlphaSuffix(fileNames(i), parentBase)
+            fileNames(i) = destFolder & newName & alpha
+            renamed = renamed + 1
         End If
-    Next p
+    Next i
 
-    ' ---- 子ファイルをコピー ----
-    For i = 0 To mapCount - 1
-        Dim src As String
-        Dim dst As String
-        src = mapOld(i)
-        dst = mapNew(i)
+    If renamed = 0 Then
+        MsgBox "コピー対象のファイルが見つかりませんでした。" & vbCrLf & vbCrLf & _
+               "子ファイル名が親ファイル名（" & parentBase & "）で" & vbCrLf & _
+               "始まっているか確認してください。", vbExclamation, "対象なし"
+        Exit Sub
+    End If
 
-        If Not FileExists(src) Then
-            failCount = failCount + 1
-            Debug.Print "スキップ（ファイルなし）: " & src
+    ' 変更後のファイルリストを Pack and Go にセット
+    packAndGo.SetFileNames fileNames
 
-        ElseIf FileExists(dst) And Not overwriteAll And Not skipAll Then
-            Dim ans As Integer
-            ans = MsgBox("同名ファイルが既に存在します：" & vbCrLf & dst & vbCrLf & vbCrLf & _
-                         "[はい] 上書き" & vbCrLf & _
-                         "[いいえ] このファイルのみスキップ" & vbCrLf & _
-                         "[キャンセル] 以降全てスキップ", _
-                         vbQuestion + vbYesNoCancel, "上書き確認")
-            Select Case ans
-                Case vbYes
-                    If Not SafeCopyFile(src, dst) Then
-                        failCount = failCount + 1
-                        MsgBox "コピーに失敗しました：" & vbCrLf & src, vbExclamation, "コピー失敗"
-                    Else
-                        successCount = successCount + 1
-                    End If
-                Case vbNo
-                    ' このファイルだけスキップ
-                Case vbCancel
-                    skipAll = True
-            End Select
+    ' Pack and Go を実行
+    ' （ファイルコピー＋アセンブリ内参照パス更新を自動処理）
+    Dim errors() As Long
+    ReDim errors(nCount - 1)
+    Dim nErrors As Long
 
-        ElseIf Not skipAll Then
-            If Not SafeCopyFile(src, dst) Then
-                failCount = failCount + 1
-                MsgBox "コピーに失敗しました：" & vbCrLf & src, vbExclamation, "コピー失敗"
-            Else
-                successCount = successCount + 1
-                Debug.Print "コピー完了: " & src & " → " & dst
+    On Error GoTo PackAndGoFailed
+    nErrors = packAndGo.Save(errors)
+    On Error GoTo 0
+
+    ' 結果表示
+    If nErrors > 0 Then
+        ' エラーが出たファイルを収集
+        Dim errList As String
+        errList = ""
+        Dim j As Long
+        For j = 0 To nCount - 1
+            If errors(j) <> 0 Then
+                errList = errList & "・" & GetFileNameFromPath(fileNames(j)) & vbCrLf
             End If
-        End If
-    Next i
-
-    ' ---- 親アセンブリをコピー ----
-    newAssyPath = destFolder & newName & ".sldasm"
-
-    If FileExists(newAssyPath) Then
-        Dim assyAns As Integer
-        assyAns = MsgBox("親アセンブリの保存先に同名ファイルが存在します：" & vbCrLf & _
-                         newAssyPath & vbCrLf & "上書きしますか？", _
-                         vbQuestion + vbYesNo, "上書き確認")
-        If assyAns <> vbYes Then
-            MsgBox "処理をキャンセルしました。", vbInformation, "キャンセル"
-            Exit Sub
-        End If
+        Next j
+        MsgBox "処理は完了しましたが、一部エラーがありました（" & nErrors & "件）：" & _
+               vbCrLf & vbCrLf & errList & vbCrLf & _
+               "保存先フォルダを確認してください。", vbExclamation, "警告"
+    Else
+        MsgBox "ファイル名を変更しコピーが完了しました。" & vbCrLf & vbCrLf & _
+               "保存先　　　　：" & destFolder & vbCrLf & _
+               "新しい親ファイル：" & newName & ".sldasm" & vbCrLf & _
+               "コピーファイル数：" & renamed & " 件", _
+               vbInformation, "完了"
     End If
 
-    If Not SafeCopyFile(parentPath, newAssyPath) Then
-        MsgBox "親アセンブリのコピーに失敗しました：" & vbCrLf & parentPath, vbCritical, "エラー"
-        Exit Sub
-    End If
+    Exit Sub
 
-    ' ---- コピーした親を開いて参照を更新 ----
-    Dim openErrors   As Long
-    Dim openWarnings As Long
-    Set newModel = swApp.OpenDoc6(newAssyPath, 2, 1, "", openErrors, openWarnings)
-
-    If newModel Is Nothing Then
-        MsgBox "コピーした親アセンブリを開けませんでした。" & vbCrLf & _
-               "手動で外部参照を更新してください。", vbExclamation, "警告"
-        Exit Sub
-    End If
-
-    For i = 0 To mapCount - 1
-        If FileExists(mapNew(i)) Then
-            newModel.ReplaceReferencedDocument mapOld(i), mapNew(i)
-        End If
-    Next i
-
-    ' 保存して閉じる
-    Dim saveErrors   As Long
-    Dim saveWarnings As Long
-    newModel.Save3 1, saveErrors, saveWarnings
-    swApp.CloseDoc newAssyPath
-
-    ' ---- 完了メッセージ ----
-    MsgBox "ファイル名を変更しコピーが完了しました。" & vbCrLf & vbCrLf & _
-           "保存先　　　　：" & destFolder & vbCrLf & _
-           "新しい親ファイル：" & newName & ".sldasm" & vbCrLf & _
-           "子ファイルコピー：" & successCount & " 件", _
-           vbInformation, "完了"
+PackAndGoFailed:
+    MsgBox "Pack and Go の実行中にエラーが発生しました。" & vbCrLf & _
+           "エラー番号：" & Err.Number & vbCrLf & _
+           "内容：" & Err.Description, vbCritical, "エラー"
 
 End Sub
 
 ' ============================================================
-' 子コンポーネントのパスを重複なく収集する
+' 子コンポーネントのパスを重複なく収集する（確認ダイアログ用）
 ' ============================================================
 Sub CollectUniqueComponentPaths(swModel As Object, ByRef col As Collection)
 
@@ -435,66 +402,10 @@ Function FileExists(filePath As String) As Boolean
     Set fso = CreateObject("Scripting.FileSystemObject")
     FileExists = fso.FileExists(filePath)
 End Function
-
-' ============================================================
-' ファイルコピー（SolidWORKS ロック中ファイル対応版）
-' ============================================================
-' SolidWORKS が開いているファイルは FileCopy でエラー70が発生するため、
-' VBA バイナリI/O（Open...For Binary）でコピーする。
-' バイナリI/O は共有読み取りアクセスを使用するため、
-' 他のプロセスがファイルを開いていてもコピーできる。
-' ============================================================
-Function SafeCopyFile(src As String, dst As String) As Boolean
-
-    Const CHUNK_SIZE As Long = 524288  ' 512KB ずつ読み書き
-
-    Dim fn1      As Integer
-    Dim fn2      As Integer
-    Dim buf()    As Byte
-    Dim remaining As Long
-    Dim chunkLen As Long
-    Dim fileLen  As Long
-
-    SafeCopyFile = False
-
-    On Error GoTo CopyFailed
-
-    fn1 = FreeFile
-    Open src For Binary Access Read As #fn1
-    fileLen = LOF(fn1)
-
-    fn2 = FreeFile
-    Open dst For Binary Access Write As #fn2
-
-    ' ファイルサイズが 0 の場合もそのままコピー（空ファイル）
-    remaining = fileLen
-    Do While remaining > 0
-        chunkLen = remaining
-        If chunkLen > CHUNK_SIZE Then chunkLen = CHUNK_SIZE
-        ReDim buf(chunkLen - 1)
-        Get #fn1, , buf
-        Put #fn2, , buf
-        remaining = remaining - chunkLen
-    Loop
-
-    Close #fn1
-    Close #fn2
-    SafeCopyFile = True
-    Exit Function
-
-CopyFailed:
-    On Error Resume Next
-    Close #fn1
-    Close #fn2
-    Debug.Print "SafeCopyFile 失敗: " & src & " → " & dst & " (Err=" & Err.Number & ": " & Err.Description & ")"
-    SafeCopyFile = False
-
-End Function
 """
 
 def main():
     output_path = "RenameAndCopy.bas"
-    # VBA エディタは CP932 (Shift-JIS) で読み込む
     with open(output_path, "w", encoding="cp932") as f:
         f.write(VBA_CODE)
     print(f"生成完了（CP932エンコーディング）：{output_path}")
