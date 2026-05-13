@@ -41,7 +41,6 @@ Sub StartRenameAndCopy()
     parentDir  = GetFolderFromPath(parentPath)
     parentBase = GetBaseNameFromPath(parentPath)
 
-    ' ---- 子ファイル数カウント（確認ダイアログ用）----
     Dim col As New Collection
     CollectUniqueComponentPaths swModel, col
 
@@ -49,28 +48,19 @@ Sub StartRenameAndCopy()
     childCount = 0
     Dim p As Variant
     For Each p In col
-        If IsChildOfParent(CStr(p), parentBase) Then
-            childCount = childCount + 1
-        End If
+        If IsChildOfParent(CStr(p), parentBase) Then childCount = childCount + 1
     Next p
 
-    ' ---- ステップ1：開始確認 ----
     Dim startMsg As String
     startMsg = "■ アセンブリ コピー＆リネーム" & vbCrLf & vbCrLf & _
                "現在のアセンブリ名：" & parentBase & ".sldasm" & vbCrLf & _
                "対象子ファイル数　：" & childCount & " 件" & vbCrLf & vbCrLf & _
                "続行しますか？"
+    If MsgBox(startMsg, vbQuestion + vbYesNo, "開始確認") <> vbYes Then Exit Sub
 
-    If MsgBox(startMsg, vbQuestion + vbYesNo, "開始確認") <> vbYes Then
-        Exit Sub
-    End If
-
-    ' ---- ステップ2：新しいアセンブリ名の入力 ----
     Dim newName As String
     newName = InputBox("新しいアセンブリ名を入力してください。" & vbCrLf & _
-                       "（拡張子 .sldasm は不要です）", _
-                       "新しいアセンブリ名", "")
-
+                       "（拡張子 .sldasm は不要です）", "新しいアセンブリ名", "")
     If Trim(newName) = "" Then
         MsgBox "キャンセルしました。", vbInformation, "キャンセル"
         Exit Sub
@@ -80,18 +70,14 @@ Sub StartRenameAndCopy()
     If ContainsInvalidChars(newName) Then
         MsgBox "ファイル名に使用できない文字が含まれています。" & vbCrLf & _
                "次の文字は使用できません：" & vbCrLf & _
-               "  \  /  :  *  ?  ""  <  >  |", _
-               vbExclamation, "入力エラー"
+               "  \  /  :  *  ?  ""  <  >  |", vbExclamation, "入力エラー"
         Exit Sub
     End If
 
-    ' ---- ステップ3：保存先フォルダの選択 ----
     Dim shellObj  As Object
     Dim folderObj As Object
     Set shellObj  = CreateObject("Shell.Application")
-    Set folderObj = shellObj.BrowseForFolder( _
-        0, "保存先フォルダを選択してください", 0, parentDir)
-
+    Set folderObj = shellObj.BrowseForFolder(0, "保存先フォルダを選択してください", 0, parentDir)
     If folderObj Is Nothing Then
         MsgBox "キャンセルしました。", vbInformation, "キャンセル"
         Exit Sub
@@ -101,7 +87,6 @@ Sub StartRenameAndCopy()
     destFolder = folderObj.Self.Path
     If Right(destFolder, 1) <> "\" Then destFolder = destFolder & "\"
 
-    ' ---- ステップ4：実行確認 ----
     Dim confirmMsg As String
     confirmMsg = "以下の内容でコピーを実行します。" & vbCrLf & vbCrLf & _
                  "現在の親ファイル名：" & parentBase & ".sldasm" & vbCrLf & _
@@ -110,24 +95,18 @@ Sub StartRenameAndCopy()
                  "対象子ファイル数　：" & childCount & " 件" & vbCrLf & vbCrLf & _
                  "実行しますか？" & vbCrLf & vbCrLf & _
                  "※ 実行前に元ファイルのバックアップを取得することを推奨します。"
+    If MsgBox(confirmMsg, vbQuestion + vbYesNo, "実行確認") <> vbYes Then Exit Sub
 
-    If MsgBox(confirmMsg, vbQuestion + vbYesNo, "実行確認") <> vbYes Then
-        Exit Sub
-    End If
-
-    ' ---- 実行 ----
     Call ExecuteCopyAndRename(swApp, swModel, parentBase, newName, destFolder)
 
     Exit Sub
 
 ErrNoApp:
-    MsgBox "SolidWORKS が起動していません。" & vbCrLf & _
-           "SolidWORKS を起動してからマクロを実行してください。", _
-           vbCritical, "エラー"
+    MsgBox "SolidWORKS が起動していません。", vbCritical, "エラー"
 End Sub
 
 ' ============================================================
-' ファイルコピー＋全アセンブリの参照更新
+' ファイルコピー＋参照更新
 ' ============================================================
 Sub ExecuteCopyAndRename(swApp As Object, swModel As Object, parentBase As String, _
                           newName As String, destFolder As String)
@@ -135,14 +114,13 @@ Sub ExecuteCopyAndRename(swApp As Object, swModel As Object, parentBase As Strin
     Dim parentPath As String
     parentPath = swModel.GetPathName()
 
-    ' ---- 1. 全コンポーネントパスを収集 ----
+    ' ---- 1. 全コンポーネントを収集してコピー ----
     Dim col As New Collection
     CollectUniqueComponentPaths swModel, col
 
-    ' ---- 2. 子ファイルをコピー（バイナリI/O でロック中も対応）----
-    Dim p           As Variant
-    Dim copiedCnt   As Long
-    Dim copiedAsms  As New Collection  ' コピーされた .sldasm を記録（参照更新用）
+    Dim p          As Variant
+    Dim copiedCnt  As Long
+    Dim copiedAsms As New Collection
     copiedCnt = 0
 
     For Each p In col
@@ -150,43 +128,40 @@ Sub ExecuteCopyAndRename(swApp As Object, swModel As Object, parentBase As Strin
             Dim destChild As String
             destChild = destFolder & newName & GetAlphaSuffix(CStr(p), parentBase)
             If Not SafeFileCopy(CStr(p), destChild) Then
-                MsgBox "ファイルのコピーに失敗しました：" & vbCrLf & CStr(p), vbCritical, "エラー"
+                MsgBox "コピー失敗：" & vbCrLf & CStr(p), vbCritical, "エラー"
                 Exit Sub
             End If
             copiedCnt = copiedCnt + 1
-            ' サブアセンブリも参照更新対象として記録
             If LCase(GetExtension(CStr(p))) = ".sldasm" Then
                 copiedAsms.Add destChild
             End If
         End If
     Next p
 
-    ' ---- 3. 親アセンブリをコピー ----
+    ' ---- 2. 親アセンブリをコピー ----
     Dim newParentPath As String
     newParentPath = destFolder & newName & GetExtension(parentPath)
-
     If Not SafeFileCopy(parentPath, newParentPath) Then
         MsgBox "親アセンブリのコピーに失敗しました。", vbCritical, "エラー"
         Exit Sub
     End If
 
-    ' ---- 4. コピーした親アセンブリの参照を更新 ----
-    Dim replResult As Boolean
-    replResult = UpdateAssemblyReferences(swApp, newParentPath, parentBase, newName, destFolder)
+    ' ---- 3. 参照更新：親アセンブリ ----
+    Dim ok As Boolean
+    ok = UpdateAssemblyReferences(swApp, newParentPath, parentBase, newName, destFolder)
 
-    ' ---- 5. コピーされたサブアセンブリの参照も更新 ----
+    ' ---- 4. 参照更新：コピーされたサブアセンブリ ----
     Dim asm As Variant
     For Each asm In copiedAsms
         UpdateAssemblyReferences swApp, CStr(asm), parentBase, newName, destFolder
     Next asm
 
-    ' ---- 完了メッセージ ----
-    If replResult Then
+    ' ---- 完了 ----
+    If ok Then
         MsgBox "ファイル名を変更しコピーが完了しました。" & vbCrLf & vbCrLf & _
                "保存先　　　　：" & destFolder & vbCrLf & _
                "新しい親ファイル：" & newName & ".sldasm" & vbCrLf & _
-               "コピーファイル数：" & copiedCnt & " 件", _
-               vbInformation, "完了"
+               "コピーファイル数：" & copiedCnt & " 件", vbInformation, "完了"
     Else
         MsgBox "ファイルのコピーは完了しました。" & vbCrLf & _
                "ただし、参照の更新に失敗しました。" & vbCrLf & vbCrLf & _
@@ -199,58 +174,61 @@ Sub ExecuteCopyAndRename(swApp As Object, swModel As Object, parentBase As Strin
 End Sub
 
 ' ============================================================
-' アセンブリファイルを開いてコンポーネント参照を一括更新し保存
-' 戻り値: True=成功, False=失敗
+' アセンブリを開いて子参照を更新して保存する
+' ポイント: ReplaceComponents2 の前に新しい子ファイルを
+'          OpenDoc6 でロードしておくことが必須
 ' ============================================================
 Function UpdateAssemblyReferences(swApp As Object, assemblyPath As String, _
                                    parentBase As String, newName As String, _
                                    destFolder As String) As Boolean
     UpdateAssemblyReferences = False
 
-    ' アセンブリを開く
     Dim openErr  As Long
     Dim openWarn As Long
+
+    ' ---- アセンブリを開く ----
     Dim asmModel As Object
     Set asmModel = swApp.OpenDoc6(assemblyPath, 2, 0, "", openErr, openWarn)
-
     If asmModel Is Nothing Then Exit Function
 
-    ' トップレベルコンポーネントを取得（True = 直接の子のみ）
+    ' ---- トップレベルコンポーネントを取得 ----
     Dim comps As Variant
     comps = asmModel.GetComponents(True)
 
-    ' 配列が有効か確認
     Dim compUb As Long
     compUb = -1
     On Error Resume Next
     compUb = UBound(comps)
     On Error GoTo 0
 
+    ' コンポーネントなし → そのまま保存して終了
     If compUb < 0 Then
-        ' コンポーネントなし → 保存して閉じる
+        On Error Resume Next
         asmModel.Save3 0, openErr, openWarn
         swApp.CloseDoc assemblyPath
+        On Error GoTo 0
         UpdateAssemblyReferences = True
         Exit Function
     End If
 
-    ' ---- 置換リストを構築（ファイルパスの重複を除去）----
-    Dim replArr()  As Variant
-    Dim pathArr()  As Variant
-    Dim ucArr()    As Variant
-    Dim cnArr()    As Variant
+    ' ---- 置換リストを構築（ファイルパス重複除去）----
+    Dim replArr()    As Variant
+    Dim pathArr()    As Variant
+    Dim ucArr()      As Variant
+    Dim cnArr()      As Variant
+    Dim newPaths()   As String     ' 事前ロード用
     ReDim replArr(compUb)
     ReDim pathArr(compUb)
     ReDim ucArr(compUb)
     ReDim cnArr(compUb)
+    ReDim newPaths(compUb)
 
-    Dim replCnt    As Long
+    Dim replCnt  As Long
     replCnt = 0
 
-    ' 処理済みパス（重複スキップ用）
-    Dim seenPaths() As String
-    ReDim seenPaths(compUb)
-    Dim seenCnt As Long
+    Dim seenOld() As String
+    ReDim seenOld(compUb)
+    Dim seenCnt  As Long
     seenCnt = 0
 
     Dim ci As Long
@@ -268,36 +246,39 @@ Function UpdateAssemblyReferences(swApp As Object, assemblyPath As String, _
         oldPath = comp.GetPathName()
         On Error GoTo 0
         If oldPath = "" Then GoTo NextComp
-
         If Not IsChildOfParent(oldPath, parentBase) Then GoTo NextComp
 
-        ' 同じファイルパスは1回だけ（matchByName=True で全インスタンスを置換するため）
-        Dim alreadySeen As Boolean
-        alreadySeen = False
+        ' 重複スキップ（同一ファイルの複数インスタンスは1エントリで足りる）
+        Dim seen As Boolean
+        seen = False
         Dim si As Long
         For si = 0 To seenCnt - 1
-            If LCase(seenPaths(si)) = LCase(oldPath) Then
-                alreadySeen = True
-                Exit For
-            End If
+            If LCase(seenOld(si)) = LCase(oldPath) Then seen = True: Exit For
         Next si
-        If alreadySeen Then GoTo NextComp
+        If seen Then GoTo NextComp
 
-        seenPaths(seenCnt) = oldPath
+        seenOld(seenCnt) = oldPath
         seenCnt = seenCnt + 1
 
+        Dim newChildPath As String
+        newChildPath = destFolder & newName & GetAlphaSuffix(oldPath, parentBase)
+
         Set replArr(replCnt) = comp
-        pathArr(replCnt) = destFolder & newName & GetAlphaSuffix(oldPath, parentBase)
-        ucArr(replCnt)   = False
-        cnArr(replCnt)   = ""
+        pathArr(replCnt)     = newChildPath
+        ucArr(replCnt)       = False
+        cnArr(replCnt)       = ""
+        newPaths(replCnt)    = newChildPath
         replCnt = replCnt + 1
 
 NextComp:
     Next ci
 
+    ' コピー対象なし
     If replCnt = 0 Then
+        On Error Resume Next
         asmModel.Save3 0, openErr, openWarn
         swApp.CloseDoc assemblyPath
+        On Error GoTo 0
         UpdateAssemblyReferences = True
         Exit Function
     End If
@@ -306,8 +287,44 @@ NextComp:
     ReDim Preserve pathArr(replCnt - 1)
     ReDim Preserve ucArr(replCnt - 1)
     ReDim Preserve cnArr(replCnt - 1)
+    ReDim Preserve newPaths(replCnt - 1)
 
-    ' ---- ReplaceComponents2 で一括置換（matchByName=True で全インスタンス対象）----
+    ' ============================================================
+    ' 【重要】ReplaceComponents2 の前に新しい子ファイルを
+    '         OpenDoc6 で SolidWORKS にロードしておく
+    '         ロードされていないと ReplaceComponents2 が False を返す
+    ' ============================================================
+    Dim loadedPaths() As String
+    ReDim loadedPaths(replCnt - 1)
+    Dim loadedCnt As Long
+    loadedCnt = 0
+
+    Dim li As Long
+    For li = 0 To replCnt - 1
+        Dim docType As Long
+        docType = GetDocTypeFromPath(newPaths(li))
+        If docType > 0 Then
+            Dim loadErr  As Long
+            Dim loadWarn As Long
+            Dim childDoc As Object
+            Set childDoc = Nothing
+            On Error Resume Next
+            Set childDoc = swApp.OpenDoc6(newPaths(li), docType, 0, "", loadErr, loadWarn)
+            On Error GoTo 0
+            If Not childDoc Is Nothing Then
+                loadedPaths(loadedCnt) = newPaths(li)
+                loadedCnt = loadedCnt + 1
+            End If
+        End If
+    Next li
+
+    ' 親アセンブリをアクティブにする
+    On Error Resume Next
+    swApp.ActivateDoc3 GetFileNameFromPath(assemblyPath), True, 0, openErr
+    On Error GoTo 0
+
+    ' ---- ReplaceComponents2 で参照を一括更新 ----
+    ' matchByName=True で同一ファイルの全インスタンスを置換
     Dim bReplaced As Boolean
     Dim rc2Err    As Long
     bReplaced = False
@@ -318,24 +335,43 @@ NextComp:
     rc2Err = Err.Number
     On Error GoTo 0
 
-    ' 置換後にリビルドして変更を確定
+    ' リビルドして変更を確定
     If bReplaced And rc2Err = 0 Then
         On Error Resume Next
         asmModel.ForceRebuild3 False
         On Error GoTo 0
     End If
 
-    ' 保存（オプション 0 = デフォルト）
+    ' ---- 保存して閉じる ----
     Dim saveErr  As Long
     Dim saveWarn As Long
     On Error Resume Next
     asmModel.Save3 0, saveErr, saveWarn
+    swApp.CloseDoc assemblyPath
     On Error GoTo 0
 
-    swApp.CloseDoc assemblyPath
+    ' ---- 事前ロードした子ファイルを閉じる ----
+    Dim lj As Long
+    For lj = 0 To loadedCnt - 1
+        On Error Resume Next
+        swApp.CloseDoc loadedPaths(lj)
+        On Error GoTo 0
+    Next lj
 
     UpdateAssemblyReferences = (bReplaced And rc2Err = 0)
 
+End Function
+
+' ============================================================
+' 拡張子から SolidWORKS ドキュメント種別を返す
+' ============================================================
+Function GetDocTypeFromPath(filePath As String) As Long
+    Select Case LCase(GetExtension(filePath))
+        Case ".sldprt": GetDocTypeFromPath = 1
+        Case ".sldasm": GetDocTypeFromPath = 2
+        Case ".slddrw": GetDocTypeFromPath = 3
+        Case Else:      GetDocTypeFromPath = 0
+    End Select
 End Function
 
 ' ============================================================
@@ -387,7 +423,7 @@ CopyFailed:
 End Function
 
 ' ============================================================
-' 子コンポーネントのパスを重複なく収集する
+' 全コンポーネントパスを重複なく収集
 ' ============================================================
 Sub CollectUniqueComponentPaths(swModel As Object, ByRef col As Collection)
 
@@ -405,10 +441,7 @@ Sub CollectUniqueComponentPaths(swModel As Object, ByRef col As Collection)
         If path <> "" Then
             dup = False
             For Each item In col
-                If item = path Then
-                    dup = True
-                    Exit For
-                End If
+                If item = path Then dup = True: Exit For
             Next item
             If Not dup Then col.Add path
         End If
@@ -420,109 +453,65 @@ End Sub
 ' ファイル名の先頭が親ファイル名と一致するか判定
 ' ============================================================
 Function IsChildOfParent(filePath As String, parentBase As String) As Boolean
-
     Dim fileName As String
     fileName = GetBaseNameFromPath(filePath)
-
     If Len(fileName) >= Len(parentBase) Then
         If StrComp(Left(fileName, Len(parentBase)), parentBase, vbTextCompare) = 0 Then
             IsChildOfParent = True
             Exit Function
         End If
     End If
-
     IsChildOfParent = False
-
 End Function
 
 ' ============================================================
 ' 子ファイルからα部分（接尾辞＋拡張子）を取得
-' 例: 親="WIDGET-A", 子="WIDGET-A-01.sldprt" → "-01.sldprt"
 ' ============================================================
 Function GetAlphaSuffix(filePath As String, parentBase As String) As String
-
     Dim baseName As String
     baseName = GetBaseNameFromPath(filePath)
-
-    Dim alpha As String
-    alpha = Mid(baseName, Len(parentBase) + 1)
-
-    GetAlphaSuffix = alpha & GetExtension(filePath)
-
+    GetAlphaSuffix = Mid(baseName, Len(parentBase) + 1) & GetExtension(filePath)
 End Function
 
 ' ============================================================
 ' ファイル名に使用できない文字が含まれているか確認
 ' ============================================================
 Function ContainsInvalidChars(name As String) As Boolean
-
     Dim invalidChars As String
-    Dim i            As Integer
+    Dim i As Integer
     invalidChars = "\/:*?""<>|"
-
     For i = 1 To Len(invalidChars)
         If InStr(name, Mid(invalidChars, i, 1)) > 0 Then
-            ContainsInvalidChars = True
-            Exit Function
+            ContainsInvalidChars = True: Exit Function
         End If
     Next i
-
     ContainsInvalidChars = False
-
 End Function
 
-' ============================================================
-' ユーティリティ：フォルダパスを取得
-' ============================================================
 Function GetFolderFromPath(filePath As String) As String
     Dim pos As Long
     pos = InStrRev(filePath, "\")
-    If pos > 0 Then
-        GetFolderFromPath = Left(filePath, pos)
-    Else
-        GetFolderFromPath = ""
-    End If
+    If pos > 0 Then GetFolderFromPath = Left(filePath, pos) Else GetFolderFromPath = ""
 End Function
 
-' ============================================================
-' ユーティリティ：拡張子なしファイル名を取得
-' ============================================================
 Function GetBaseNameFromPath(filePath As String) As String
     Dim fileName As String
     Dim dotPos   As Long
     fileName = GetFileNameFromPath(filePath)
     dotPos = InStrRev(fileName, ".")
-    If dotPos > 0 Then
-        GetBaseNameFromPath = Left(fileName, dotPos - 1)
-    Else
-        GetBaseNameFromPath = fileName
-    End If
+    If dotPos > 0 Then GetBaseNameFromPath = Left(fileName, dotPos - 1) Else GetBaseNameFromPath = fileName
 End Function
 
-' ============================================================
-' ユーティリティ：ファイル名（拡張子あり）を取得
-' ============================================================
 Function GetFileNameFromPath(filePath As String) As String
     Dim pos As Long
     pos = InStrRev(filePath, "\")
-    If pos > 0 Then
-        GetFileNameFromPath = Mid(filePath, pos + 1)
-    Else
-        GetFileNameFromPath = filePath
-    End If
+    If pos > 0 Then GetFileNameFromPath = Mid(filePath, pos + 1) Else GetFileNameFromPath = filePath
 End Function
 
-' ============================================================
-' ユーティリティ：拡張子を取得（例: ".sldasm"）
-' ============================================================
 Function GetExtension(filePath As String) As String
     Dim fileName As String
     Dim dotPos   As Long
     fileName = GetFileNameFromPath(filePath)
     dotPos = InStrRev(fileName, ".")
-    If dotPos > 0 Then
-        GetExtension = Mid(fileName, dotPos)
-    Else
-        GetExtension = ""
-    End If
+    If dotPos > 0 Then GetExtension = Mid(fileName, dotPos) Else GetExtension = ""
 End Function
