@@ -1,22 +1,34 @@
-Attribute VB_Name = "RenameAndCopy"
+"""
+generate_bas.py
+RenameAndCopy.bas ã‚’ Shift-JIS (CP932) ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ã§ç”Ÿæˆã™ã‚‹ã€‚
+
+VBA ã‚¨ãƒ‡ã‚£ã‚¿ï¼ˆSolidWORKS / Excelï¼‰ã¯ Windows ã® ANSI ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°
+ï¼ˆæ—¥æœ¬èªç’°å¢ƒã§ã¯ CP932 / Shift-JISï¼‰ã§ãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã‚€ã€‚
+ã“ã®ã‚¹ã‚¯ãƒªãƒ—ãƒˆã‚’å®Ÿè¡Œã™ã‚‹ã“ã¨ã§ã€æ—¥æœ¬èªãŒæ–‡å­—åŒ–ã‘ã—ãªã„ .bas ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ç”Ÿæˆã™ã‚‹ã€‚
+
+å®Ÿè¡Œæ–¹æ³•:
+    python generate_bas.py
+"""
+
+VBA_CODE = r"""Attribute VB_Name = "RenameAndCopy"
 ' ============================================================
-' SolidWORKS ƒAƒZƒ“ƒuƒŠ ƒRƒs[•ƒŠƒl[ƒ€ ƒ}ƒNƒ
+' SolidWORKS ã‚¢ã‚»ãƒ³ãƒ–ãƒª ã‚³ãƒ”ãƒ¼ï¼†ãƒªãƒãƒ¼ãƒ  ãƒã‚¯ãƒ­
 ' ------------------------------------------------------------
-' ‹@”\:
-'   eƒAƒZƒ“ƒuƒŠ‚ğŠJ‚¢‚½ó‘Ô‚Åƒ}ƒNƒ‚ğ‹N“®‚µAV‚µ‚¢–¼‘O‚Æ
-'   •Û‘¶æƒtƒHƒ‹ƒ_‚ğw’è‚·‚é‚ÆAeƒAƒZƒ“ƒuƒŠ‚¨‚æ‚Ñƒtƒ@ƒCƒ‹–¼‚ª
-'   ueƒtƒ@ƒCƒ‹–¼{ƒ¿v‚Æ‚È‚Á‚Ä‚¢‚éqƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ
-'   uV‚µ‚¢eƒtƒ@ƒCƒ‹–¼{ƒ¿v‚Ì–¼‘O‚ÅƒRƒs[‚·‚éB
-'   ƒRƒs[‚³‚ê‚½eƒAƒZƒ“ƒuƒŠ‚Íqƒtƒ@ƒCƒ‹‚Æ³‚µ‚­ƒŠƒ“ƒN‚³‚ê‚éB
+' æ©Ÿèƒ½:
+'   è¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªã‚’é–‹ã„ãŸçŠ¶æ…‹ã§ãƒã‚¯ãƒ­ã‚’èµ·å‹•ã—ã€æ–°ã—ã„åå‰ã¨
+'   ä¿å­˜å…ˆãƒ•ã‚©ãƒ«ãƒ€ã‚’æŒ‡å®šã™ã‚‹ã¨ã€è¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªãŠã‚ˆã³ãƒ•ã‚¡ã‚¤ãƒ«åãŒ
+'   ã€Œè¦ªãƒ•ã‚¡ã‚¤ãƒ«åï¼‹Î±ã€ã¨ãªã£ã¦ã„ã‚‹å­ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’
+'   ã€Œæ–°ã—ã„è¦ªãƒ•ã‚¡ã‚¤ãƒ«åï¼‹Î±ã€ã®åå‰ã§ã‚³ãƒ”ãƒ¼ã™ã‚‹ã€‚
+'   ã‚³ãƒ”ãƒ¼ã•ã‚ŒãŸè¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªã¯å­ãƒ•ã‚¡ã‚¤ãƒ«ã¨æ­£ã—ããƒªãƒ³ã‚¯ã•ã‚Œã‚‹ã€‚
 '
-' ‘Î‰ƒo[ƒWƒ‡ƒ“: SolidWORKS 2020 ˆÈ~
-' ƒCƒ“ƒ|[ƒg•û–@: VBA ƒGƒfƒBƒ^‚Å [ƒtƒ@ƒCƒ‹] ¨ [ƒtƒ@ƒCƒ‹‚ÌƒCƒ“ƒ|[ƒg]
+' å¯¾å¿œãƒãƒ¼ã‚¸ãƒ§ãƒ³: SolidWORKS 2020 ä»¥é™
+' ã‚¤ãƒ³ãƒãƒ¼ãƒˆæ–¹æ³•: VBA ã‚¨ãƒ‡ã‚£ã‚¿ã§ [ãƒ•ã‚¡ã‚¤ãƒ«] â†’ [ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚¤ãƒ³ãƒãƒ¼ãƒˆ]
 ' ============================================================
 
 Option Explicit
 
 ' ============================================================
-' ƒGƒ“ƒgƒŠ[ƒ|ƒCƒ“ƒg
+' ã‚¨ãƒ³ãƒˆãƒªãƒ¼ãƒã‚¤ãƒ³ãƒˆ
 ' ============================================================
 Sub StartRenameAndCopy()
 
@@ -30,16 +42,16 @@ Sub StartRenameAndCopy()
     Set swModel = swApp.ActiveDoc
 
     If swModel Is Nothing Then
-        MsgBox "SolidWORKS ‚ÅƒAƒZƒ“ƒuƒŠƒtƒ@ƒCƒ‹i.sldasmj‚ğŠJ‚¢‚Ä‚©‚ç" & vbCrLf & _
-               "ƒ}ƒNƒ‚ğÀs‚µ‚Ä‚­‚¾‚³‚¢B", vbCritical, "ƒGƒ‰["
+        MsgBox "SolidWORKS ã§ã‚¢ã‚»ãƒ³ãƒ–ãƒªãƒ•ã‚¡ã‚¤ãƒ«ï¼ˆ.sldasmï¼‰ã‚’é–‹ã„ã¦ã‹ã‚‰" & vbCrLf & _
+               "ãƒã‚¯ãƒ­ã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚", vbCritical, "ã‚¨ãƒ©ãƒ¼"
         Exit Sub
     End If
 
     If swModel.GetType() <> 2 Then
-        MsgBox "ƒAƒZƒ“ƒuƒŠƒtƒ@ƒCƒ‹i.sldasmj‚ğŠJ‚¢‚Ä‚©‚ç" & vbCrLf & _
-               "ƒ}ƒNƒ‚ğÀs‚µ‚Ä‚­‚¾‚³‚¢B" & vbCrLf & vbCrLf & _
-               "Œ»İŠJ‚¢‚Ä‚¢‚éƒtƒ@ƒCƒ‹‚ÍƒAƒZƒ“ƒuƒŠ‚Å‚Í‚ ‚è‚Ü‚¹‚ñB", _
-               vbCritical, "ƒGƒ‰["
+        MsgBox "ã‚¢ã‚»ãƒ³ãƒ–ãƒªãƒ•ã‚¡ã‚¤ãƒ«ï¼ˆ.sldasmï¼‰ã‚’é–‹ã„ã¦ã‹ã‚‰" & vbCrLf & _
+               "ãƒã‚¯ãƒ­ã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚" & vbCrLf & vbCrLf & _
+               "ç¾åœ¨é–‹ã„ã¦ã„ã‚‹ãƒ•ã‚¡ã‚¤ãƒ«ã¯ã‚¢ã‚»ãƒ³ãƒ–ãƒªã§ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚", _
+               vbCritical, "ã‚¨ãƒ©ãƒ¼"
         Exit Sub
     End If
 
@@ -51,7 +63,7 @@ Sub StartRenameAndCopy()
     parentDir  = GetFolderFromPath(parentPath)
     parentBase = GetBaseNameFromPath(parentPath)
 
-    ' ---- qƒtƒ@ƒCƒ‹”ƒJƒEƒ“ƒg ----
+    ' ---- å­ãƒ•ã‚¡ã‚¤ãƒ«æ•°ã‚«ã‚¦ãƒ³ãƒˆ ----
     Dim col As New Collection
     CollectUniqueComponentPaths swModel, col
 
@@ -64,46 +76,46 @@ Sub StartRenameAndCopy()
         End If
     Next p
 
-    ' ---- ƒXƒeƒbƒv1FŠJnŠm”F ----
+    ' ---- ã‚¹ãƒ†ãƒƒãƒ—1ï¼šé–‹å§‹ç¢ºèª ----
     Dim startMsg As String
-    startMsg = "¡ ƒAƒZƒ“ƒuƒŠ ƒRƒs[•ƒŠƒl[ƒ€" & vbCrLf & vbCrLf & _
-               "Œ»İ‚ÌƒAƒZƒ“ƒuƒŠ–¼F" & parentBase & ".sldasm" & vbCrLf & _
-               "‘ÎÛqƒtƒ@ƒCƒ‹”@F" & childCount & " Œ" & vbCrLf & vbCrLf & _
-               "‘±s‚µ‚Ü‚·‚©H"
+    startMsg = "â–  ã‚¢ã‚»ãƒ³ãƒ–ãƒª ã‚³ãƒ”ãƒ¼ï¼†ãƒªãƒãƒ¼ãƒ " & vbCrLf & vbCrLf & _
+               "ç¾åœ¨ã®ã‚¢ã‚»ãƒ³ãƒ–ãƒªåï¼š" & parentBase & ".sldasm" & vbCrLf & _
+               "å¯¾è±¡å­ãƒ•ã‚¡ã‚¤ãƒ«æ•°ã€€ï¼š" & childCount & " ä»¶" & vbCrLf & vbCrLf & _
+               "ç¶šè¡Œã—ã¾ã™ã‹ï¼Ÿ"
 
-    If MsgBox(startMsg, vbQuestion + vbYesNo, "ŠJnŠm”F") <> vbYes Then
+    If MsgBox(startMsg, vbQuestion + vbYesNo, "é–‹å§‹ç¢ºèª") <> vbYes Then
         Exit Sub
     End If
 
-    ' ---- ƒXƒeƒbƒv2FV‚µ‚¢ƒAƒZƒ“ƒuƒŠ–¼‚Ì“ü—Í ----
+    ' ---- ã‚¹ãƒ†ãƒƒãƒ—2ï¼šæ–°ã—ã„ã‚¢ã‚»ãƒ³ãƒ–ãƒªåã®å…¥åŠ› ----
     Dim newName As String
-    newName = InputBox("V‚µ‚¢ƒAƒZƒ“ƒuƒŠ–¼‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B" & vbCrLf & _
-                       "iŠg’£q .sldasm ‚Í•s—v‚Å‚·j", _
-                       "V‚µ‚¢ƒAƒZƒ“ƒuƒŠ–¼", "")
+    newName = InputBox("æ–°ã—ã„ã‚¢ã‚»ãƒ³ãƒ–ãƒªåã‚’å…¥åŠ›ã—ã¦ãã ã•ã„ã€‚" & vbCrLf & _
+                       "ï¼ˆæ‹¡å¼µå­ .sldasm ã¯ä¸è¦ã§ã™ï¼‰", _
+                       "æ–°ã—ã„ã‚¢ã‚»ãƒ³ãƒ–ãƒªå", "")
 
     If Trim(newName) = "" Then
-        MsgBox "ƒLƒƒƒ“ƒZƒ‹‚µ‚Ü‚µ‚½B", vbInformation, "ƒLƒƒƒ“ƒZƒ‹"
+        MsgBox "ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ã¾ã—ãŸã€‚", vbInformation, "ã‚­ãƒ£ãƒ³ã‚»ãƒ«"
         Exit Sub
     End If
     newName = Trim(newName)
 
     If ContainsInvalidChars(newName) Then
-        MsgBox "ƒtƒ@ƒCƒ‹–¼‚Ég—p‚Å‚«‚È‚¢•¶š‚ªŠÜ‚Ü‚ê‚Ä‚¢‚Ü‚·B" & vbCrLf & _
-               "Ÿ‚Ì•¶š‚Íg—p‚Å‚«‚Ü‚¹‚ñF" & vbCrLf & _
+        MsgBox "ãƒ•ã‚¡ã‚¤ãƒ«åã«ä½¿ç”¨ã§ããªã„æ–‡å­—ãŒå«ã¾ã‚Œã¦ã„ã¾ã™ã€‚" & vbCrLf & _
+               "æ¬¡ã®æ–‡å­—ã¯ä½¿ç”¨ã§ãã¾ã›ã‚“ï¼š" & vbCrLf & _
                "  \  /  :  *  ?  ""  <  >  |", _
-               vbExclamation, "“ü—ÍƒGƒ‰["
+               vbExclamation, "å…¥åŠ›ã‚¨ãƒ©ãƒ¼"
         Exit Sub
     End If
 
-    ' ---- ƒXƒeƒbƒv3F•Û‘¶æƒtƒHƒ‹ƒ_‚Ì‘I‘ğ ----
+    ' ---- ã‚¹ãƒ†ãƒƒãƒ—3ï¼šä¿å­˜å…ˆãƒ•ã‚©ãƒ«ãƒ€ã®é¸æŠ ----
     Dim shell     As Object
     Dim folderObj As Object
     Set shell = CreateObject("Shell.Application")
     Set folderObj = shell.BrowseForFolder( _
-        0, "•Û‘¶æƒtƒHƒ‹ƒ_‚ğ‘I‘ğ‚µ‚Ä‚­‚¾‚³‚¢", 0, parentDir)
+        0, "ä¿å­˜å…ˆãƒ•ã‚©ãƒ«ãƒ€ã‚’é¸æŠã—ã¦ãã ã•ã„", 0, parentDir)
 
     If folderObj Is Nothing Then
-        MsgBox "ƒLƒƒƒ“ƒZƒ‹‚µ‚Ü‚µ‚½B", vbInformation, "ƒLƒƒƒ“ƒZƒ‹"
+        MsgBox "ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ã¾ã—ãŸã€‚", vbInformation, "ã‚­ãƒ£ãƒ³ã‚»ãƒ«"
         Exit Sub
     End If
 
@@ -111,33 +123,33 @@ Sub StartRenameAndCopy()
     destFolder = folderObj.Self.Path
     If Right(destFolder, 1) <> "\" Then destFolder = destFolder & "\"
 
-    ' ---- ƒXƒeƒbƒv4FÀsŠm”F ----
+    ' ---- ã‚¹ãƒ†ãƒƒãƒ—4ï¼šå®Ÿè¡Œç¢ºèª ----
     Dim confirmMsg As String
-    confirmMsg = "ˆÈ‰º‚Ì“à—e‚ÅƒRƒs[‚ğÀs‚µ‚Ü‚·B" & vbCrLf & vbCrLf & _
-                 "Œ»İ‚Ìeƒtƒ@ƒCƒ‹–¼F" & parentBase & ".sldasm" & vbCrLf & _
-                 "V‚µ‚¢eƒtƒ@ƒCƒ‹–¼F" & newName & ".sldasm" & vbCrLf & _
-                 "•Û‘¶æƒtƒHƒ‹ƒ_@@F" & destFolder & vbCrLf & _
-                 "‘ÎÛqƒtƒ@ƒCƒ‹”@F" & childCount & " Œ" & vbCrLf & vbCrLf & _
-                 "Às‚µ‚Ü‚·‚©H" & vbCrLf & vbCrLf & _
-                 "¦ Às‘O‚ÉŒ³ƒtƒ@ƒCƒ‹‚ÌƒoƒbƒNƒAƒbƒv‚ğæ“¾‚·‚é‚±‚Æ‚ğ„§‚µ‚Ü‚·B"
+    confirmMsg = "ä»¥ä¸‹ã®å†…å®¹ã§ã‚³ãƒ”ãƒ¼ã‚’å®Ÿè¡Œã—ã¾ã™ã€‚" & vbCrLf & vbCrLf & _
+                 "ç¾åœ¨ã®è¦ªãƒ•ã‚¡ã‚¤ãƒ«åï¼š" & parentBase & ".sldasm" & vbCrLf & _
+                 "æ–°ã—ã„è¦ªãƒ•ã‚¡ã‚¤ãƒ«åï¼š" & newName & ".sldasm" & vbCrLf & _
+                 "ä¿å­˜å…ˆãƒ•ã‚©ãƒ«ãƒ€ã€€ã€€ï¼š" & destFolder & vbCrLf & _
+                 "å¯¾è±¡å­ãƒ•ã‚¡ã‚¤ãƒ«æ•°ã€€ï¼š" & childCount & " ä»¶" & vbCrLf & vbCrLf & _
+                 "å®Ÿè¡Œã—ã¾ã™ã‹ï¼Ÿ" & vbCrLf & vbCrLf & _
+                 "â€» å®Ÿè¡Œå‰ã«å…ƒãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒƒã‚¯ã‚¢ãƒƒãƒ—ã‚’å–å¾—ã™ã‚‹ã“ã¨ã‚’æ¨å¥¨ã—ã¾ã™ã€‚"
 
-    If MsgBox(confirmMsg, vbQuestion + vbYesNo, "ÀsŠm”F") <> vbYes Then
+    If MsgBox(confirmMsg, vbQuestion + vbYesNo, "å®Ÿè¡Œç¢ºèª") <> vbYes Then
         Exit Sub
     End If
 
-    ' ---- Às ----
+    ' ---- å®Ÿè¡Œ ----
     Call ExecuteRenameAndCopy(swApp, swModel, parentPath, parentDir, _
                               parentBase, newName, destFolder, col)
     Exit Sub
 
 ErrNoApp:
-    MsgBox "SolidWORKS ‚ª‹N“®‚µ‚Ä‚¢‚Ü‚¹‚ñB" & vbCrLf & _
-           "SolidWORKS ‚ğ‹N“®‚µ‚Ä‚©‚çƒ}ƒNƒ‚ğÀs‚µ‚Ä‚­‚¾‚³‚¢B", _
-           vbCritical, "ƒGƒ‰["
+    MsgBox "SolidWORKS ãŒèµ·å‹•ã—ã¦ã„ã¾ã›ã‚“ã€‚" & vbCrLf & _
+           "SolidWORKS ã‚’èµ·å‹•ã—ã¦ã‹ã‚‰ãƒã‚¯ãƒ­ã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚", _
+           vbCritical, "ã‚¨ãƒ©ãƒ¼"
 End Sub
 
 ' ============================================================
-' ƒƒCƒ“Àsˆ—
+' ãƒ¡ã‚¤ãƒ³å®Ÿè¡Œå‡¦ç†
 ' ============================================================
 Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
                          parentPath As String, parentDir As String, _
@@ -160,7 +172,7 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
     overwriteAll = False
     skipAll      = False
 
-    ' ‘ÎÛƒtƒ@ƒCƒ‹‚Ìƒ}ƒbƒsƒ“ƒOì¬
+    ' å¯¾è±¡ãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒƒãƒ”ãƒ³ã‚°ä½œæˆ
     Dim mapCount  As Long
     Dim mapOld()  As String
     Dim mapNew()  As String
@@ -180,7 +192,7 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
         End If
     Next p
 
-    ' ---- qƒtƒ@ƒCƒ‹‚ğƒRƒs[ ----
+    ' ---- å­ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã‚³ãƒ”ãƒ¼ ----
     For i = 0 To mapCount - 1
         Dim src As String
         Dim dst As String
@@ -189,21 +201,21 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
 
         If Not FileExists(src) Then
             failCount = failCount + 1
-            Debug.Print "ƒXƒLƒbƒviƒtƒ@ƒCƒ‹‚È‚µj: " & src
+            Debug.Print "ã‚¹ã‚­ãƒƒãƒ—ï¼ˆãƒ•ã‚¡ã‚¤ãƒ«ãªã—ï¼‰: " & src
 
         ElseIf FileExists(dst) And Not overwriteAll And Not skipAll Then
             Dim ans As Integer
-            ans = MsgBox("“¯–¼ƒtƒ@ƒCƒ‹‚ªŠù‚É‘¶İ‚µ‚Ü‚·F" & vbCrLf & dst & vbCrLf & vbCrLf & _
-                         "[‚Í‚¢] ã‘‚«" & vbCrLf & _
-                         "[‚¢‚¢‚¦] ‚±‚Ìƒtƒ@ƒCƒ‹‚Ì‚İƒXƒLƒbƒv" & vbCrLf & _
-                         "[ƒLƒƒƒ“ƒZƒ‹] ˆÈ~‘S‚ÄƒXƒLƒbƒv", _
-                         vbQuestion + vbYesNoCancel, "ã‘‚«Šm”F")
+            ans = MsgBox("åŒåãƒ•ã‚¡ã‚¤ãƒ«ãŒæ—¢ã«å­˜åœ¨ã—ã¾ã™ï¼š" & vbCrLf & dst & vbCrLf & vbCrLf & _
+                         "[ã¯ã„] ä¸Šæ›¸ã" & vbCrLf & _
+                         "[ã„ã„ãˆ] ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã®ã¿ã‚¹ã‚­ãƒƒãƒ—" & vbCrLf & _
+                         "[ã‚­ãƒ£ãƒ³ã‚»ãƒ«] ä»¥é™å…¨ã¦ã‚¹ã‚­ãƒƒãƒ—", _
+                         vbQuestion + vbYesNoCancel, "ä¸Šæ›¸ãç¢ºèª")
             Select Case ans
                 Case vbYes
                     FileCopy src, dst
                     successCount = successCount + 1
                 Case vbNo
-                    ' ‚±‚Ìƒtƒ@ƒCƒ‹‚¾‚¯ƒXƒLƒbƒv
+                    ' ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã ã‘ã‚¹ã‚­ãƒƒãƒ—
                 Case vbCancel
                     skipAll = True
             End Select
@@ -211,34 +223,34 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
         ElseIf Not skipAll Then
             FileCopy src, dst
             successCount = successCount + 1
-            Debug.Print "ƒRƒs[Š®—¹: " & src & " ¨ " & dst
+            Debug.Print "ã‚³ãƒ”ãƒ¼å®Œäº†: " & src & " â†’ " & dst
         End If
     Next i
 
-    ' ---- eƒAƒZƒ“ƒuƒŠ‚ğƒRƒs[ ----
+    ' ---- è¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªã‚’ã‚³ãƒ”ãƒ¼ ----
     newAssyPath = destFolder & newName & ".sldasm"
 
     If FileExists(newAssyPath) Then
         Dim assyAns As Integer
-        assyAns = MsgBox("eƒAƒZƒ“ƒuƒŠ‚Ì•Û‘¶æ‚É“¯–¼ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚Ü‚·F" & vbCrLf & _
-                         newAssyPath & vbCrLf & "ã‘‚«‚µ‚Ü‚·‚©H", _
-                         vbQuestion + vbYesNo, "ã‘‚«Šm”F")
+        assyAns = MsgBox("è¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªã®ä¿å­˜å…ˆã«åŒåãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ã¾ã™ï¼š" & vbCrLf & _
+                         newAssyPath & vbCrLf & "ä¸Šæ›¸ãã—ã¾ã™ã‹ï¼Ÿ", _
+                         vbQuestion + vbYesNo, "ä¸Šæ›¸ãç¢ºèª")
         If assyAns <> vbYes Then
-            MsgBox "ˆ—‚ğƒLƒƒƒ“ƒZƒ‹‚µ‚Ü‚µ‚½B", vbInformation, "ƒLƒƒƒ“ƒZƒ‹"
+            MsgBox "å‡¦ç†ã‚’ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ã¾ã—ãŸã€‚", vbInformation, "ã‚­ãƒ£ãƒ³ã‚»ãƒ«"
             Exit Sub
         End If
     End If
 
     FileCopy parentPath, newAssyPath
 
-    ' ---- ƒRƒs[‚µ‚½e‚ğŠJ‚¢‚ÄQÆ‚ğXV ----
+    ' ---- ã‚³ãƒ”ãƒ¼ã—ãŸè¦ªã‚’é–‹ã„ã¦å‚ç…§ã‚’æ›´æ–° ----
     Dim openErrors   As Long
     Dim openWarnings As Long
     Set newModel = swApp.OpenDoc6(newAssyPath, 2, 1, "", openErrors, openWarnings)
 
     If newModel Is Nothing Then
-        MsgBox "ƒRƒs[‚µ‚½eƒAƒZƒ“ƒuƒŠ‚ğŠJ‚¯‚Ü‚¹‚ñ‚Å‚µ‚½B" & vbCrLf & _
-               "è“®‚ÅŠO•”QÆ‚ğXV‚µ‚Ä‚­‚¾‚³‚¢B", vbExclamation, "Œx"
+        MsgBox "ã‚³ãƒ”ãƒ¼ã—ãŸè¦ªã‚¢ã‚»ãƒ³ãƒ–ãƒªã‚’é–‹ã‘ã¾ã›ã‚“ã§ã—ãŸã€‚" & vbCrLf & _
+               "æ‰‹å‹•ã§å¤–éƒ¨å‚ç…§ã‚’æ›´æ–°ã—ã¦ãã ã•ã„ã€‚", vbExclamation, "è­¦å‘Š"
         Exit Sub
     End If
 
@@ -248,23 +260,23 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
         End If
     Next i
 
-    ' •Û‘¶‚µ‚Ä•Â‚¶‚é
+    ' ä¿å­˜ã—ã¦é–‰ã˜ã‚‹
     Dim saveErrors   As Long
     Dim saveWarnings As Long
     newModel.Save3 1, saveErrors, saveWarnings
     swApp.CloseDoc newAssyPath
 
-    ' ---- Š®—¹ƒƒbƒZ[ƒW ----
-    MsgBox "ƒtƒ@ƒCƒ‹–¼‚ğ•ÏX‚µƒRƒs[‚ªŠ®—¹‚µ‚Ü‚µ‚½B" & vbCrLf & vbCrLf & _
-           "•Û‘¶æ@@@@F" & destFolder & vbCrLf & _
-           "V‚µ‚¢eƒtƒ@ƒCƒ‹F" & newName & ".sldasm" & vbCrLf & _
-           "qƒtƒ@ƒCƒ‹ƒRƒs[F" & successCount & " Œ", _
-           vbInformation, "Š®—¹"
+    ' ---- å®Œäº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ ----
+    MsgBox "ãƒ•ã‚¡ã‚¤ãƒ«åã‚’å¤‰æ›´ã—ã‚³ãƒ”ãƒ¼ãŒå®Œäº†ã—ã¾ã—ãŸã€‚" & vbCrLf & vbCrLf & _
+           "ä¿å­˜å…ˆã€€ã€€ã€€ã€€ï¼š" & destFolder & vbCrLf & _
+           "æ–°ã—ã„è¦ªãƒ•ã‚¡ã‚¤ãƒ«ï¼š" & newName & ".sldasm" & vbCrLf & _
+           "å­ãƒ•ã‚¡ã‚¤ãƒ«ã‚³ãƒ”ãƒ¼ï¼š" & successCount & " ä»¶", _
+           vbInformation, "å®Œäº†"
 
 End Sub
 
 ' ============================================================
-' qƒRƒ“ƒ|[ƒlƒ“ƒg‚ÌƒpƒX‚ğd•¡‚È‚­ûW‚·‚é
+' å­ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã®ãƒ‘ã‚¹ã‚’é‡è¤‡ãªãåé›†ã™ã‚‹
 ' ============================================================
 Sub CollectUniqueComponentPaths(swModel As Object, ByRef col As Collection)
 
@@ -294,7 +306,7 @@ Sub CollectUniqueComponentPaths(swModel As Object, ByRef col As Collection)
 End Sub
 
 ' ============================================================
-' ƒtƒ@ƒCƒ‹–¼‚Ìæ“ª‚ªeƒtƒ@ƒCƒ‹–¼‚Æˆê’v‚·‚é‚©”»’è
+' ãƒ•ã‚¡ã‚¤ãƒ«åã®å…ˆé ­ãŒè¦ªãƒ•ã‚¡ã‚¤ãƒ«åã¨ä¸€è‡´ã™ã‚‹ã‹åˆ¤å®š
 ' ============================================================
 Function IsChildOfParent(filePath As String, parentBase As String) As Boolean
 
@@ -313,8 +325,8 @@ Function IsChildOfParent(filePath As String, parentBase As String) As Boolean
 End Function
 
 ' ============================================================
-' qƒtƒ@ƒCƒ‹‚©‚çƒ¿•”•ªiÚ”ö«{Šg’£qj‚ğæ“¾
-' —á: e="WIDGET-A", q="WIDGET-A-01.sldprt" ¨ "-01.sldprt"
+' å­ãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰Î±éƒ¨åˆ†ï¼ˆæ¥å°¾è¾ï¼‹æ‹¡å¼µå­ï¼‰ã‚’å–å¾—
+' ä¾‹: è¦ª="WIDGET-A", å­="WIDGET-A-01.sldprt" â†’ "-01.sldprt"
 ' ============================================================
 Function GetAlphaSuffix(filePath As String, parentBase As String) As String
 
@@ -329,7 +341,7 @@ Function GetAlphaSuffix(filePath As String, parentBase As String) As String
 End Function
 
 ' ============================================================
-' ƒtƒ@ƒCƒ‹–¼‚Ég—p‚Å‚«‚È‚¢•¶š‚ªŠÜ‚Ü‚ê‚Ä‚¢‚é‚©Šm”F
+' ãƒ•ã‚¡ã‚¤ãƒ«åã«ä½¿ç”¨ã§ããªã„æ–‡å­—ãŒå«ã¾ã‚Œã¦ã„ã‚‹ã‹ç¢ºèª
 ' ============================================================
 Function ContainsInvalidChars(name As String) As Boolean
 
@@ -349,7 +361,7 @@ Function ContainsInvalidChars(name As String) As Boolean
 End Function
 
 ' ============================================================
-' ƒ†[ƒeƒBƒŠƒeƒBFƒtƒHƒ‹ƒ_ƒpƒX‚ğæ“¾
+' ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ï¼šãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹ã‚’å–å¾—
 ' ============================================================
 Function GetFolderFromPath(filePath As String) As String
     Dim pos As Long
@@ -362,7 +374,7 @@ Function GetFolderFromPath(filePath As String) As String
 End Function
 
 ' ============================================================
-' ƒ†[ƒeƒBƒŠƒeƒBFŠg’£q‚È‚µƒtƒ@ƒCƒ‹–¼‚ğæ“¾
+' ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ï¼šæ‹¡å¼µå­ãªã—ãƒ•ã‚¡ã‚¤ãƒ«åã‚’å–å¾—
 ' ============================================================
 Function GetBaseNameFromPath(filePath As String) As String
     Dim fileName As String
@@ -377,7 +389,7 @@ Function GetBaseNameFromPath(filePath As String) As String
 End Function
 
 ' ============================================================
-' ƒ†[ƒeƒBƒŠƒeƒBFƒtƒ@ƒCƒ‹–¼iŠg’£q‚ ‚èj‚ğæ“¾
+' ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ï¼šãƒ•ã‚¡ã‚¤ãƒ«åï¼ˆæ‹¡å¼µå­ã‚ã‚Šï¼‰ã‚’å–å¾—
 ' ============================================================
 Function GetFileNameFromPath(filePath As String) As String
     Dim pos As Long
@@ -390,7 +402,7 @@ Function GetFileNameFromPath(filePath As String) As String
 End Function
 
 ' ============================================================
-' ƒ†[ƒeƒBƒŠƒeƒBFŠg’£q‚ğæ“¾i—á: ".sldprt"j
+' ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ï¼šæ‹¡å¼µå­ã‚’å–å¾—ï¼ˆä¾‹: ".sldprt"ï¼‰
 ' ============================================================
 Function GetExtension(filePath As String) As String
     Dim fileName As String
@@ -405,10 +417,21 @@ Function GetExtension(filePath As String) As String
 End Function
 
 ' ============================================================
-' ƒ†[ƒeƒBƒŠƒeƒBFƒtƒ@ƒCƒ‹‘¶İŠm”F
+' ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ï¼šãƒ•ã‚¡ã‚¤ãƒ«å­˜åœ¨ç¢ºèª
 ' ============================================================
 Function FileExists(filePath As String) As Boolean
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
     FileExists = fso.FileExists(filePath)
 End Function
+"""
+
+def main():
+    output_path = "RenameAndCopy.bas"
+    # VBA ã‚¨ãƒ‡ã‚£ã‚¿ã¯ CP932 (Shift-JIS) ã§èª­ã¿è¾¼ã‚€
+    with open(output_path, "w", encoding="cp932") as f:
+        f.write(VBA_CODE)
+    print(f"ç”Ÿæˆå®Œäº†ï¼ˆCP932ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ï¼‰ï¼š{output_path}")
+
+if __name__ == "__main__":
+    main()

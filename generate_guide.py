@@ -1,6 +1,6 @@
 """
-SolidWORKS アセンブリ コピー＆リネーム マクロ
-操作説明資料（Excel）生成スクリプト
+generate_guide.py
+マクロ使用方法ガイド.xlsx を生成する。
 
 実行方法:
     pip install openpyxl
@@ -8,28 +8,27 @@ SolidWORKS アセンブリ コピー＆リネーム マクロ
 """
 
 from openpyxl import Workbook
-from openpyxl.styles import (
-    Font, PatternFill, Alignment, Border, Side, GradientFill
-)
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.page import PageMargins
 
 # ============================================================
 # カラー定義
 # ============================================================
-COLOR_HEADER_BG    = "1F4E79"   # 濃い青（ヘッダー背景）
-COLOR_HEADER_FG    = "FFFFFF"   # 白（ヘッダー文字）
-COLOR_STEP_BG      = "BDD7EE"   # 薄い青（手順番号背景）
-COLOR_CAUTION_BG   = "FFF2CC"   # 黄（注意事項背景）
-COLOR_CAUTION_FG   = "7F6000"   # 濃い黄（注意事項文字）
-COLOR_SECTION_BG   = "D6E4F0"   # ライトブルー（セクション）
-COLOR_GOOD_BG      = "E2EFDA"   # 薄い緑（OKマーク）
-COLOR_TITLE_BG     = "2E75B6"   # 中間青（タイトル）
+C_HEADER_BG  = "1F4E79"
+C_HEADER_FG  = "FFFFFF"
+C_TITLE_BG   = "2E75B6"
+C_STEP_BG    = "BDD7EE"
+C_CAUTION_BG = "FFF2CC"
+C_CAUTION_FG = "7F6000"
+C_SECTION_BG = "D6E4F0"
+C_GOOD_BG    = "E2EFDA"
+C_SCREEN_BG  = "F2F2F2"   # 画面操作説明の背景（薄いグレー）
+C_ARROW_FG   = "C55A11"   # 矢印・強調色
 
 # ============================================================
-# スタイル生成ヘルパー
+# スタイルヘルパー
 # ============================================================
-def hfont(bold=False, size=11, color="000000", name="游ゴシック"):
+def hfont(bold=False, size=10, color="000000", name="游ゴシック"):
     return Font(bold=bold, size=size, color=color, name=name)
 
 def hfill(color):
@@ -42,8 +41,8 @@ def hborder(style="thin"):
 def halign(h="left", v="center", wrap=False):
     return Alignment(horizontal=h, vertical=v, wrap_text=wrap)
 
-def apply_cell(ws, row, col, value, bold=False, size=11, fg="000000",
-               bg=None, h="left", v="center", wrap=False, border=False):
+def cell(ws, row, col, value="", bold=False, size=10, fg="000000",
+         bg=None, h="left", v="center", wrap=False, border=False):
     c = ws.cell(row=row, column=col, value=value)
     c.font      = hfont(bold=bold, size=size, color=fg)
     c.alignment = halign(h=h, v=v, wrap=wrap)
@@ -53,8 +52,8 @@ def apply_cell(ws, row, col, value, bold=False, size=11, fg="000000",
         c.border = hborder()
     return c
 
-def merge_and_apply(ws, r1, c1, r2, c2, value, bold=False, size=11,
-                    fg="000000", bg=None, h="left", v="center", wrap=False):
+def merge(ws, r1, c1, r2, c2, value="", bold=False, size=10,
+          fg="000000", bg=None, h="left", v="center", wrap=False, border=False):
     ws.merge_cells(start_row=r1, start_column=c1,
                    end_row=r2, end_column=c2)
     c = ws.cell(row=r1, column=c1, value=value)
@@ -62,11 +61,16 @@ def merge_and_apply(ws, r1, c1, r2, c2, value, bold=False, size=11,
     c.alignment = halign(h=h, v=v, wrap=wrap)
     if bg:
         c.fill = hfill(bg)
+    if border:
+        c.border = hborder()
     return c
 
-def set_column_widths(ws, widths):
-    for i, w in enumerate(widths, start=1):
+def col_w(ws, widths):
+    for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
+
+def row_h(ws, row, h):
+    ws.row_dimensions[row].height = h
 
 # ============================================================
 # シート1：概要
@@ -75,266 +79,338 @@ def build_overview(wb):
     ws = wb.active
     ws.title = "概要"
     ws.sheet_view.showGridLines = False
-
-    set_column_widths(ws, [3, 20, 55, 3])
+    col_w(ws, [2, 18, 58, 2])
 
     # タイトル
-    merge_and_apply(ws, 1, 2, 2, 3,
-                    "SolidWORKS アセンブリ コピー＆リネーム マクロ\n操作説明資料",
-                    bold=True, size=16, fg=COLOR_HEADER_FG, bg=COLOR_TITLE_BG,
-                    h="center", v="center", wrap=True)
-    ws.row_dimensions[1].height = 20
-    ws.row_dimensions[2].height = 20
+    merge(ws, 1, 2, 2, 3,
+          "SolidWORKS アセンブリ コピー＆リネーム マクロ\n操作説明資料",
+          bold=True, size=16, fg=C_HEADER_FG, bg=C_TITLE_BG,
+          h="center", v="center", wrap=True)
+    row_h(ws, 1, 22); row_h(ws, 2, 22)
 
     r = 4
-    # マクロの目的
-    apply_cell(ws, r, 2, "■ マクロの目的", bold=True, size=13,
-               bg=COLOR_SECTION_BG)
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 20
-    r += 1
 
-    overview_text = (
-        "SolidWORKS の親アセンブリ（.sldasm）と、その子コンポーネントのファイルを\n"
-        "まとめて新しい名前でコピーするマクロです。\n\n"
-        "コピー後の親アセンブリを開くと、コピーされた子ファイルと正しくリンクされた\n"
-        "状態になっています。元のファイルはそのまま残ります。"
+    def section(title, r):
+        merge(ws, r, 2, r, 3, title, bold=True, size=12,
+              fg=C_HEADER_FG, bg=C_HEADER_BG)
+        row_h(ws, r, 20)
+        return r + 1
+
+    # ---- 概要 ----
+    r = section("■ このマクロでできること", r)
+    txt = (
+        "SolidWORKS の親アセンブリ（.sldasm）と、そのアセンブリ名で始まる子コンポーネント\n"
+        "ファイルをまとめて新しい名前でコピーします。\n\n"
+        "コピー後の親アセンブリを開くと、コピーされた子ファイルと正しくリンクされた状態\n"
+        "になっています。元のファイルは変更・削除されません。"
     )
-    apply_cell(ws, r, 2, overview_text, size=11, wrap=True, v="top")
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 80
-    r += 2
+    merge(ws, r, 2, r, 3, txt, size=10, wrap=True, v="top")
+    row_h(ws, r, 72); r += 2
 
-    # 動作の仕組み
-    apply_cell(ws, r, 2, "■ 動作の仕組み", bold=True, size=13,
-               bg=COLOR_SECTION_BG)
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 20
-    r += 1
-
+    # ---- 動作の流れ ----
+    r = section("■ 動作の流れ", r)
     steps = [
         ("STEP 1", "SolidWORKS で親アセンブリを開く"),
-        ("STEP 2", "マクロを起動する（Tools → Macro → Run Macro）"),
-        ("STEP 3", "ダイアログで新しいアセンブリ名と保存先フォルダを指定して「実行」をクリック"),
-        ("STEP 4", "自動的に親ファイルと子ファイルのコピーが作成される"),
-        ("STEP 5", "「ファイル名を変更しコピーが完了しました。」と表示されたら完了"),
+        ("STEP 2", "マクロを起動する"),
+        ("STEP 3", "現在のアセンブリ名・子ファイル数を確認して「はい」をクリック"),
+        ("STEP 4", "新しいアセンブリ名を入力して「OK」をクリック"),
+        ("STEP 5", "保存先フォルダを選択して「OK」をクリック"),
+        ("STEP 6", "実行内容を確認して「はい」をクリック"),
+        ("STEP 7", "「ファイル名を変更しコピーが完了しました。」で完了！"),
     ]
     for step, desc in steps:
-        apply_cell(ws, r, 2, step, bold=True, fg="FFFFFF", bg=COLOR_HEADER_BG,
-                   h="center", border=True)
-        apply_cell(ws, r, 3, desc, wrap=True, border=True)
-        ws.row_dimensions[r].height = 22
-        r += 1
+        cell(ws, r, 2, step, bold=True, fg=C_HEADER_FG, bg=C_HEADER_BG,
+             h="center", v="center", border=True)
+        cell(ws, r, 3, desc, border=True)
+        row_h(ws, r, 18); r += 1
     r += 1
 
-    # 子ファイルの検出ルール
-    apply_cell(ws, r, 2, "■ 子ファイルの検出ルール", bold=True, size=13,
-               bg=COLOR_SECTION_BG)
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 20
-    r += 1
-
-    rule_text = (
-        "アセンブリ内のコンポーネントのうち、ファイル名が「親ファイル名」で始まるものが\n"
-        "コピー対象となります。それ以外のコンポーネントはコピーされません。\n\n"
-        "【例】\n"
-        "  親ファイル名：WIDGET-A.sldasm\n"
-        "  → WIDGET-A-01.sldprt  ✓ コピー対象\n"
-        "  → WIDGET-A-FRAME.sldprt  ✓ コピー対象\n"
-        "  → OTHER-PART.sldprt  ✗ コピー対象外（名前が違う）"
+    # ---- 子ファイルの検出ルール ----
+    r = section("■ 子ファイルの検出ルール（重要）", r)
+    rule = (
+        "アセンブリ内のコンポーネントのうち、ファイル名の先頭が「親ファイル名」と一致するものが\n"
+        "コピー対象になります。それ以外はコピーされません。\n\n"
+        "【例】  親ファイル名 = WIDGET-A.sldasm  →  新しい名前 = GADGET-B\n\n"
+        "  WIDGET-A-01.sldprt      → ✓ コピー対象  → GADGET-B-01.sldprt\n"
+        "  WIDGET-A-02.sldprt      → ✓ コピー対象  → GADGET-B-02.sldprt\n"
+        "  WIDGET-A-FRAME.sldprt   → ✓ コピー対象  → GADGET-B-FRAME.sldprt\n"
+        "  OTHER-PART.sldprt       → ✗ 対象外（名前が違う・コピーされない）"
     )
-    apply_cell(ws, r, 2, rule_text, wrap=True, v="top",
-               bg=COLOR_CAUTION_BG)
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 120
-    r += 2
+    merge(ws, r, 2, r, 3, rule, wrap=True, v="top", bg=C_CAUTION_BG)
+    row_h(ws, r, 120); r += 2
 
-    # 注意事項
-    apply_cell(ws, r, 2, "⚠ 実行前の注意事項", bold=True, size=13,
-               fg=COLOR_CAUTION_FG, bg=COLOR_CAUTION_BG)
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-    ws.row_dimensions[r].height = 20
-    r += 1
-
+    # ---- 注意事項 ----
+    r = section("⚠ 実行前の注意事項", r)
     cautions = [
-        "□ 元ファイルのバックアップを取得してください",
-        "□ 親アセンブリが SolidWORKS で開いている状態でマクロを実行してください",
-        "□ 子ファイルが他のプロセスによってロックされていないことを確認してください",
+        "□ 実行前に必ず元ファイルのバックアップを取得してください",
+        "□ 親アセンブリを SolidWORKS で開いた状態でマクロを実行してください",
+        "□ 子ファイルが他のアプリケーションで開かれていないことを確認してください",
         "□ 保存先フォルダへの書き込み権限があることを確認してください",
     ]
-    for c in cautions:
-        apply_cell(ws, r, 2, c, wrap=True, fg=COLOR_CAUTION_FG,
-                   bg=COLOR_CAUTION_BG, border=True)
-        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-        ws.row_dimensions[r].height = 18
-        r += 1
+    for c_text in cautions:
+        merge(ws, r, 2, r, 3, c_text, fg=C_CAUTION_FG, bg=C_CAUTION_BG, border=True)
+        row_h(ws, r, 18); r += 1
 
 
 # ============================================================
-# シート2：インストール手順
+# シート2：インストール手順（刷新：1ファイルのみ・UserForm不要）
 # ============================================================
 def build_install(wb):
     ws = wb.create_sheet("インストール手順")
     ws.sheet_view.showGridLines = False
-    set_column_widths(ws, [3, 6, 20, 40, 3])
+    col_w(ws, [2, 6, 22, 46, 2])
 
-    merge_and_apply(ws, 1, 2, 1, 4,
-                    "マクロのインストール手順",
-                    bold=True, size=14, fg=COLOR_HEADER_FG, bg=COLOR_HEADER_BG,
-                    h="center", v="center")
-    ws.row_dimensions[1].height = 28
+    merge(ws, 1, 2, 1, 4,
+          "マクロのインストール手順",
+          bold=True, size=14, fg=C_HEADER_FG, bg=C_HEADER_BG,
+          h="center", v="center")
+    row_h(ws, 1, 28)
+
+    # ポイント説明
+    merge(ws, 2, 2, 2, 4,
+          "💡 インポートするファイルは「RenameAndCopy.bas」の 1ファイルのみです。UserForm の手動設定は不要です。",
+          bold=True, size=10, fg=C_ARROW_FG, bg=C_GOOD_BG, wrap=True)
+    row_h(ws, 2, 20)
+
+    r = 4
 
     steps = [
-        ("1", "マクロファイルを準備する",
-         "以下の2つのファイルをパソコン上のフォルダに保存します：\n"
-         "  • RenameAndCopy.bas\n"
-         "  • frmRenameDialog.frm"),
-        ("2", "SolidWORKS のマクロエディタを開く",
-         "メニューから：\nTools（ツール）→ Macro（マクロ）→ Edit Macro（マクロを編集）"),
-        ("3", "新しいマクロプロジェクトを作成する",
-         "「Edit Macro」ダイアログで「新規（New）」をクリックし、\n"
-         "保存名を「RenameAndCopy.swp」として保存します。"),
-        ("4", "モジュールをインポートする",
-         "VBAエディタのメニューから：\nFile → Import File\n"
-         "① RenameAndCopy.bas を選択してインポート\n"
-         "② frmRenameDialog.frm を選択してインポート"),
-        ("5", "UserFormのコントロールを配置する",
-         "インポートした frmRenameDialog をダブルクリックして開き、\n"
-         "ツールボックスから以下のコントロールを配置してください：\n"
-         "  • lblCurrentLabel（Label）：「現在のアセンブリ名：」\n"
-         "  • lblCurrentName（Label）：アセンブリ名表示\n"
-         "  • lblNewName（Label）：「新しいアセンブリ名：」\n"
-         "  • txtNewName（TextBox）：新しい名前入力欄\n"
-         "  • lblNewNameNote（Label）：「（拡張子 .sldasm は不要です）」\n"
-         "  • lblFolder（Label）：「保存先フォルダ：」\n"
-         "  • txtFolder（TextBox）：フォルダパス表示・入力\n"
-         "  • btnBrowse（CommandButton）：「参照...」\n"
-         "  • lblPreview（Label）：対象子ファイル数表示\n"
-         "  • btnExecute（CommandButton）：「実行」\n"
-         "  • btnCancel（CommandButton）：「キャンセル」"),
-        ("6", "マクロを保存する",
-         "VBAエディタで Ctrl+S を押してマクロプロジェクトを保存します。"),
+        ("1",
+         "マクロファイルを用意する",
+         "generate_bas.py を実行して RenameAndCopy.bas を生成します。\n\n"
+         "① generate_bas.py があるフォルダでコマンドプロンプトを開く\n"
+         "② 以下のコマンドを実行する：\n"
+         "     python generate_bas.py\n\n"
+         "→ 同じフォルダに「RenameAndCopy.bas」が作成されます。\n\n"
+         "※ generate_bas.py が既に含まれていればこの手順は不要です。"),
+
+        ("2",
+         "SolidWORKS でマクロエディタを開く",
+         "SolidWORKS のメニューから操作します：\n\n"
+         "  ①  上部メニューバーの「Tools（ツール）」をクリック\n"
+         "  ②  「Macro（マクロ）」にマウスを合わせる\n"
+         "  ③  「Edit Macro（マクロを編集）」をクリック\n\n"
+         "→ Visual Basic for Applications（VBA）エディタが開きます。"),
+
+        ("3",
+         "新しいマクロプロジェクトを作成する",
+         "VBA エディタが開いたら新しいマクロファイルを作成します：\n\n"
+         "  ①  表示された「Edit Macro」ダイアログの「新規（New）」ボタンをクリック\n"
+         "  ②  「名前を付けて保存」ダイアログが開く\n"
+         "  ③  ファイル名に「RenameAndCopy」と入力\n"
+         "  ④  保存場所を確認して「保存」をクリック\n\n"
+         "→ 「RenameAndCopy.swp」というマクロファイルが作成されます。\n"
+         "   VBA エディタに空のコード画面が表示されます。"),
+
+        ("4",
+         "RenameAndCopy.bas をインポートする",
+         "VBA エディタのメニューから .bas ファイルを読み込みます：\n\n"
+         "  ①  VBA エディタ上部メニューの「File（ファイル）」をクリック\n"
+         "  ②  「Import File...（ファイルのインポート）」をクリック\n"
+         "  ③  ファイル選択ダイアログで「RenameAndCopy.bas」を選択\n"
+         "  ④  「開く」をクリック\n\n"
+         "→ 左側のプロジェクトツリーに「RenameAndCopy」モジュールが追加されます。\n\n"
+         "⚠ 自動的に作成された「Module1」など空のモジュールがある場合は\n"
+         "   右クリック → 「Remove Module1」で削除してください。"),
+
+        ("5",
+         "マクロを保存する",
+         "VBA エディタで Ctrl+S を押してマクロを保存します。\n\n"
+         "→「RenameAndCopy.swp」ファイルにコードが保存されます。\n\n"
+         "以上でインストール完了です。"),
+
+        ("6",
+         "（確認）動作テストを行う",
+         "テスト用のアセンブリファイルで動作を確認します：\n\n"
+         "  ①  SolidWORKS でテスト用のアセンブリ（.sldasm）を開く\n"
+         "  ②  Tools → Macro → Run Macro で「RenameAndCopy.swp」を選択\n"
+         "  ③  マクロ一覧に「StartRenameAndCopy」が表示されることを確認\n"
+         "  ④  「実行（Run）」をクリックしてダイアログが表示されれば成功"),
     ]
 
-    r = 3
     for num, title, detail in steps:
-        apply_cell(ws, r, 2, num, bold=True, fg="FFFFFF", bg=COLOR_HEADER_BG,
-                   h="center", v="top", border=True)
-        apply_cell(ws, r, 3, title, bold=True, bg=COLOR_STEP_BG, border=True)
-        apply_cell(ws, r, 4, detail, wrap=True, v="top", border=True)
-        ws.row_dimensions[r].height = max(18, detail.count("\n") * 15 + 18)
+        cell(ws, r, 2, num, bold=True, fg=C_HEADER_FG, bg=C_HEADER_BG,
+             h="center", v="top", border=True)
+        cell(ws, r, 3, title, bold=True, bg=C_STEP_BG, border=True, v="top")
+        cell(ws, r, 4, detail, wrap=True, v="top", border=True)
+        lines = detail.count("\n") + 1
+        row_h(ws, r, max(20, lines * 14 + 6))
         r += 1
 
-    # 補足
     r += 1
-    merge_and_apply(ws, r, 2, r, 4,
-                    "💡 補足：SolidWORKS 2020 以降のバージョンで動作確認済みです。",
-                    fg=COLOR_CAUTION_FG, bg=COLOR_CAUTION_BG, wrap=True)
-    ws.row_dimensions[r].height = 18
+    merge(ws, r, 2, r, 4,
+          "💡 補足：SolidWORKS 2020 以降で動作確認済みです。",
+          fg=C_CAUTION_FG, bg=C_CAUTION_BG, wrap=True)
+    row_h(ws, r, 18)
 
 
 # ============================================================
-# シート3：操作手順
+# シート3：操作手順（詳細な画面説明付き）
 # ============================================================
 def build_operation(wb):
     ws = wb.create_sheet("操作手順")
     ws.sheet_view.showGridLines = False
-    set_column_widths(ws, [3, 6, 22, 40, 3])
+    col_w(ws, [2, 6, 22, 46, 2])
 
-    merge_and_apply(ws, 1, 2, 1, 4,
-                    "マクロの操作手順",
-                    bold=True, size=14, fg=COLOR_HEADER_FG, bg=COLOR_HEADER_BG,
-                    h="center", v="center")
-    ws.row_dimensions[1].height = 28
+    merge(ws, 1, 2, 1, 4,
+          "マクロの操作手順（実行のたびに行う手順）",
+          bold=True, size=14, fg=C_HEADER_FG, bg=C_HEADER_BG,
+          h="center", v="center")
+    row_h(ws, 1, 28)
 
     r = 3
-    sections = [
-        ("準備", [
-            ("1", "親アセンブリのバックアップを取得する",
-             "必ず元ファイルをコピーしてバックアップを取ってください。"),
-            ("2", "SolidWORKS で親アセンブリを開く",
-             "リネーム対象の親アセンブリ（.sldasm）を SolidWORKS で開きます。\n"
-             "パーツファイル（.sldprt）だけを開いた状態では動作しません。"),
-        ]),
-        ("マクロ実行", [
-            ("3", "マクロを起動する",
-             "メニューから：\nTools（ツール）→ Macro（マクロ）→ Run Macro（マクロを実行）\n"
-             "「RenameAndCopy.swp」を選択して「開く」→ StartRenameAndCopy を選択して「実行」"),
-            ("4", "ダイアログが表示される",
-             "以下の情報が表示されるダイアログが開きます：\n"
-             "  • 現在のアセンブリ名（確認用）\n"
-             "  • 対象となる子ファイル数\n"
-             "  入力欄に新しいアセンブリ名と保存先フォルダを指定します。"),
-            ("5", "新しいアセンブリ名を入力する",
-             "「新しいアセンブリ名」欄に新しい名前を入力します。\n"
-             "例：WIDGET-A → GADGET-B\n"
-             "拡張子（.sldasm）は入力不要です。"),
-            ("6", "保存先フォルダを指定する",
-             "デフォルトは元ファイルと同じフォルダです。\n"
-             "「参照...」ボタンでフォルダを選択するか、直接パスを入力できます。\n"
-             "存在しないフォルダを指定した場合は作成するか確認されます。"),
-            ("7", "「実行」ボタンをクリックする",
-             "確認ダイアログが表示されます。内容を確認して「はい」をクリックすると処理が始まります。"),
-        ]),
-        ("完了確認", [
-            ("8", "完了メッセージを確認する",
-             "「ファイル名を変更しコピーが完了しました。」というメッセージが表示されたら完了です。\n"
-             "コピーされたファイルの数が表示されます。"),
-            ("9", "新しい親アセンブリを開いて確認する",
-             "保存先フォルダに作成された新しい親アセンブリ（.sldasm）を開きます。\n"
-             "全ての子コンポーネントが正常に表示されることを確認してください。"),
-        ]),
+
+    def section_hdr(ws, r, title):
+        merge(ws, r, 2, r, 4, f"【 {title} 】",
+              bold=True, size=11, fg=C_HEADER_FG, bg=C_TITLE_BG)
+        row_h(ws, r, 20)
+        return r + 1
+
+    # ========== 準備 ==========
+    r = section_hdr(ws, r, "準備")
+    prep_steps = [
+        ("準備①",
+         "元ファイルのバックアップを取る",
+         "対象の親アセンブリと子ファイルが入ったフォルダを別の場所にコピーして\n"
+         "バックアップを保管してください。\n"
+         "（マクロ実行中にエラーが起きた場合に復元できます）"),
+        ("準備②",
+         "SolidWORKS で親アセンブリを開く",
+         "コピー・リネームしたい親アセンブリ（.sldasm）を SolidWORKS で開きます。\n\n"
+         "✓ 正しい状態：タイトルバーに「〇〇〇.sldasm」と表示されている\n"
+         "✗ 誤った状態：パーツファイル（.sldprt）が開かれている\n\n"
+         "※ パーツファイルが開かれた状態でマクロを実行するとエラーになります。"),
+    ]
+    for step, title, detail in prep_steps:
+        cell(ws, r, 2, step, bold=True, fg=C_HEADER_FG, bg=C_HEADER_BG,
+             h="center", v="top", border=True)
+        cell(ws, r, 3, title, bold=True, bg=C_STEP_BG, border=True, v="top")
+        cell(ws, r, 4, detail, wrap=True, v="top", border=True)
+        row_h(ws, r, max(20, detail.count("\n") * 14 + 10))
+        r += 1
+    r += 1
+
+    # ========== マクロ起動 ==========
+    r = section_hdr(ws, r, "マクロの起動")
+    run_steps = [
+        ("操作①",
+         "マクロの実行メニューを開く",
+         "SolidWORKS の上部メニューから：\n\n"
+         "  「Tools（ツール）」→「Macro（マクロ）」→「Run Macro（マクロを実行）」\n\n"
+         "→ ファイル選択ダイアログが開きます。"),
+        ("操作②",
+         "RenameAndCopy.swp を選択して実行",
+         "  ①  ダイアログで「RenameAndCopy.swp」を選択\n"
+         "  ②  「開く」をクリック\n"
+         "  ③  マクロの関数一覧が表示される\n"
+         "  ④  「StartRenameAndCopy」が選択されていることを確認\n"
+         "  ⑤  「実行（Run）」ボタンをクリック"),
+    ]
+    for step, title, detail in run_steps:
+        cell(ws, r, 2, step, bold=True, fg=C_HEADER_FG, bg=C_HEADER_BG,
+             h="center", v="top", border=True)
+        cell(ws, r, 3, title, bold=True, bg=C_STEP_BG, border=True, v="top")
+        cell(ws, r, 4, detail, wrap=True, v="top", border=True)
+        row_h(ws, r, max(20, detail.count("\n") * 14 + 10))
+        r += 1
+    r += 1
+
+    # ========== ダイアログ操作 ==========
+    r = section_hdr(ws, r, "ダイアログの操作（マクロ起動後に表示される画面）")
+
+    dialog_steps = [
+        ("画面①",
+         "開始確認ダイアログ",
+         "【表示内容】\n"
+         "  ・現在のアセンブリ名（例：WIDGET-A.sldasm）\n"
+         "  ・対象子ファイル数（例：4件）\n\n"
+         "【操作】\n"
+         "  ✓ 内容を確認して「はい（Yes）」をクリックすると次に進みます\n"
+         "  ✗ 「いいえ（No）」でキャンセルできます\n\n"
+         "⚠ 子ファイル数が 0 件の場合は命名規則を確認してください\n"
+         "  （子ファイル名が親ファイル名で始まっていない可能性があります）"),
+
+        ("画面②",
+         "新しいアセンブリ名の入力",
+         "【表示内容】\n"
+         "  「新しいアセンブリ名を入力してください。（拡張子 .sldasm は不要です）」\n\n"
+         "【操作】\n"
+         "  ①  入力欄に新しい名前を入力する\n"
+         "      例：WIDGET-A → GADGET-B と変更したい場合は「GADGET-B」と入力\n"
+         "  ②  「OK」をクリックする\n\n"
+         "⚠ 注意：拡張子（.sldasm）は入力しないでください\n"
+         "⚠ 次の記号はファイル名に使用できません：\\ / : * ? \" < > |"),
+
+        ("画面③",
+         "保存先フォルダの選択",
+         "【表示内容】\n"
+         "  フォルダ選択ダイアログ\n"
+         "  （デフォルトで現在の親ファイルと同じフォルダが選択されています）\n\n"
+         "【操作】\n"
+         "  ①  コピーファイルを保存したいフォルダを選択\n"
+         "      ・同じフォルダに保存する場合はそのまま「OK」\n"
+         "      ・別のフォルダを選ぶ場合はツリーから目的のフォルダをクリック\n"
+         "  ②  「OK」をクリックする\n\n"
+         "💡 新しいフォルダを作成したい場合は「新しいフォルダーを作成」ボタンを使用"),
+
+        ("画面④",
+         "実行確認ダイアログ",
+         "【表示内容】\n"
+         "  ・現在の親ファイル名\n"
+         "  ・新しい親ファイル名\n"
+         "  ・保存先フォルダ\n"
+         "  ・対象子ファイル数\n\n"
+         "【操作】\n"
+         "  ①  表示された内容が正しいことを確認する\n"
+         "  ②  問題なければ「はい（Yes）」をクリックして実行\n"
+         "  ③  内容を変更したい場合は「いいえ（No）」でキャンセルし、最初からやり直す"),
+
+        ("画面⑤",
+         "完了メッセージ",
+         "【表示内容】\n"
+         "  「ファイル名を変更しコピーが完了しました。」\n"
+         "  ・保存先フォルダ\n"
+         "  ・新しい親ファイル名\n"
+         "  ・コピーされた子ファイル数\n\n"
+         "【操作】\n"
+         "  「OK」をクリックしてマクロを終了する\n\n"
+         "【完了後の確認】\n"
+         "  ①  保存先フォルダを開いて新しいファイルが作成されていることを確認\n"
+         "  ②  新しい親アセンブリ（.sldasm）を SolidWORKS で開く\n"
+         "  ③  全てのコンポーネントが正常に表示されていれば成功"),
     ]
 
-    for section_name, step_list in sections:
-        # セクションヘッダー
-        merge_and_apply(ws, r, 2, r, 4,
-                        f"【 {section_name} 】",
-                        bold=True, size=12, fg=COLOR_HEADER_FG, bg=COLOR_TITLE_BG)
-        ws.row_dimensions[r].height = 20
+    for step, title, detail in dialog_steps:
+        cell(ws, r, 2, step, bold=True, fg=C_HEADER_FG, bg=C_TITLE_BG,
+             h="center", v="top", border=True)
+        cell(ws, r, 3, title, bold=True, bg=C_STEP_BG, border=True, v="top")
+        cell(ws, r, 4, detail, wrap=True, v="top", border=True)
+        row_h(ws, r, max(20, detail.count("\n") * 14 + 10))
         r += 1
-
-        for num, title, detail in step_list:
-            apply_cell(ws, r, 2, num, bold=True, fg="FFFFFF", bg=COLOR_HEADER_BG,
-                       h="center", v="top", border=True)
-            apply_cell(ws, r, 3, title, bold=True, bg=COLOR_STEP_BG, border=True, v="top")
-            apply_cell(ws, r, 4, detail, wrap=True, v="top", border=True)
-            line_count = detail.count("\n") + 1
-            ws.row_dimensions[r].height = max(20, line_count * 16)
-            r += 1
-        r += 1
-
-    # コピー前後の対応表
-    merge_and_apply(ws, r, 2, r, 4,
-                    "【 コピー前後のファイル名の例 】",
-                    bold=True, size=12, fg=COLOR_HEADER_FG, bg=COLOR_TITLE_BG)
-    ws.row_dimensions[r].height = 20
     r += 1
 
-    # ヘッダー行
-    apply_cell(ws, r, 2, "種別",     bold=True, fg="FFFFFF", bg=COLOR_HEADER_BG,
-               h="center", border=True)
-    apply_cell(ws, r, 3, "コピー前（元ファイル）", bold=True, fg="FFFFFF",
-               bg=COLOR_HEADER_BG, h="center", border=True)
-    apply_cell(ws, r, 4, "コピー後（新ファイル）", bold=True, fg="FFFFFF",
-               bg=COLOR_HEADER_BG, h="center", border=True)
-    ws.row_dimensions[r].height = 18
-    r += 1
+    # ========== 変換例 ==========
+    r = section_hdr(ws, r, "ファイル名変換例")
+
+    # ヘッダー
+    for col_idx, txt in enumerate(["種別", "変換前（元ファイル）", "変換後（コピーファイル）"], start=2):
+        cell(ws, r, col_idx, txt, bold=True, fg=C_HEADER_FG,
+             bg=C_HEADER_BG, h="center", border=True)
+    row_h(ws, r, 18); r += 1
 
     examples = [
-        ("親アセンブリ", "WIDGET-A.sldasm",        "GADGET-B.sldasm"),
-        ("子パーツ①",   "WIDGET-A-01.sldprt",     "GADGET-B-01.sldprt"),
-        ("子パーツ②",   "WIDGET-A-02.sldprt",     "GADGET-B-02.sldprt"),
-        ("子パーツ③",   "WIDGET-A-FRAME.sldprt",  "GADGET-B-FRAME.sldprt"),
-        ("対象外",       "OTHER-PART.sldprt",       "コピーされない"),
+        ("親アセンブリ",  "WIDGET-A.sldasm",       "GADGET-B.sldasm"),
+        ("子パーツ①",    "WIDGET-A-01.sldprt",    "GADGET-B-01.sldprt"),
+        ("子パーツ②",    "WIDGET-A-02.sldprt",    "GADGET-B-02.sldprt"),
+        ("子パーツ③",    "WIDGET-A-FRAME.sldprt", "GADGET-B-FRAME.sldprt"),
+        ("対象外（コピーなし）", "OTHER-PART.sldprt", "（変更なし・コピーされない）"),
     ]
     for kind, before, after in examples:
-        apply_cell(ws, r, 2, kind,   h="center", border=True)
-        apply_cell(ws, r, 3, before, border=True)
-        bg = COLOR_GOOD_BG if after != "コピーされない" else COLOR_CAUTION_BG
-        apply_cell(ws, r, 4, after, bg=bg, border=True)
-        ws.row_dimensions[r].height = 18
-        r += 1
+        cell(ws, r, 2, kind, h="center", border=True)
+        cell(ws, r, 3, before, border=True)
+        bg = C_GOOD_BG if "コピーなし" not in kind else C_CAUTION_BG
+        cell(ws, r, 4, after, bg=bg, border=True)
+        row_h(ws, r, 18); r += 1
 
 
 # ============================================================
@@ -343,71 +419,76 @@ def build_operation(wb):
 def build_faq(wb):
     ws = wb.create_sheet("よくある質問")
     ws.sheet_view.showGridLines = False
-    set_column_widths(ws, [3, 8, 55, 3])
+    col_w(ws, [2, 6, 58, 2])
 
-    merge_and_apply(ws, 1, 2, 1, 3,
-                    "よくある質問（トラブルシューティング）",
-                    bold=True, size=14, fg=COLOR_HEADER_FG, bg=COLOR_HEADER_BG,
-                    h="center", v="center")
-    ws.row_dimensions[1].height = 28
+    merge(ws, 1, 2, 1, 3,
+          "よくある質問・トラブルシューティング",
+          bold=True, size=14, fg=C_HEADER_FG, bg=C_HEADER_BG,
+          h="center", v="center")
+    row_h(ws, 1, 28)
 
     faqs = [
-        ("Q", "マクロを実行すると「アセンブリファイルを開いてください」と表示される",
+        ("Q", "「アセンブリファイルを開いてください」と表示される",
          "A", "パーツファイル（.sldprt）が開かれています。\n"
               "親アセンブリ（.sldasm）を SolidWORKS で開いてから再度マクロを実行してください。"),
-        ("Q", "子ファイルがコピーされない",
-         "A", "子ファイルのファイル名が親ファイル名で始まっていない可能性があります。\n"
-              "命名規則を確認してください。\n"
-              "例：親が「WIDGET-A.sldasm」の場合、子は「WIDGET-A-」で始まる必要があります。"),
+
+        ("Q", "子ファイル数が「0件」と表示される",
+         "A", "子ファイルのファイル名が親ファイル名で始まっていない可能性があります。\n\n"
+              "確認方法：\n"
+              "  ・親ファイル名（拡張子なし）と子ファイル名を並べて確認する\n"
+              "  ・子ファイル名の先頭が親ファイル名と完全に一致しているか確認する\n\n"
+              "例）親が「ABC-001.sldasm」の場合、子は「ABC-001-○○.sldprt」形式である必要があります。"),
+
         ("Q", "コピー後の親アセンブリを開いたら参照エラーが出る",
-         "A", "以下を確認してください：\n"
-              "① 子ファイルのコピーが正しく完了しているか\n"
-              "② コピー先フォルダに全てのファイルが存在するか\n"
-              "問題が解消しない場合は、SolidWORKS の「外部参照の修復」機能を使用して\n"
-              "手動でパスを再指定してください。"),
+         "A", "以下の順で確認してください：\n\n"
+              "  ①  保存先フォルダに全ての子ファイルがコピーされているか確認する\n"
+              "  ②  コピーが正常に完了していた場合、SolidWORKS の\n"
+              "      「外部参照の修復」機能で手動パス指定を行う\n\n"
+              "手動修復の手順：\n"
+              "  File → Open → コピーした親 .sldasm を開く\n"
+              "  → 「参照が見つかりません」ダイアログが表示されたら「参照先の変更」を選択\n"
+              "  → コピー先フォルダを指定する"),
+
+        ("Q", "VBA エディタで日本語が文字化けしている",
+         "A", "ファイルのエンコーディングが原因です。以下の手順で解決できます：\n\n"
+              "  ①  generate_bas.py を Python で実行して RenameAndCopy.bas を再生成する\n"
+              "      （このスクリプトが Shift-JIS エンコーディングでファイルを生成します）\n"
+              "  ②  VBA エディタで既存モジュールを右クリック → Remove（削除）\n"
+              "  ③  File → Import File で再生成した .bas をインポートし直す\n\n"
+              "⚠ メモ帳などのテキストエディタで直接 .bas ファイルを編集・保存すると\n"
+              "  UTF-8 で保存されて再び文字化けします。編集は必ず VBA エディタ上で行ってください。"),
+
         ("Q", "「既に同名ファイルが存在します」と表示される",
-         "A", "指定した保存先に同じ名前のファイルが既に存在します。\n"
-              "「はい」を選択すると上書きします。\n"
-              "「いいえ」を選択するとそのファイルのみスキップします。\n"
-              "「キャンセル」を選択すると以降の全ファイルをスキップします。"),
-        ("Q", "サブアセンブリ（入れ子になったアセンブリ）は対応しているか",
-         "A", "サブアセンブリ自体のファイル名が親ファイル名で始まる場合はコピーされます。\n"
-              "ただし、サブアセンブリの内部に含まれる子部品については、\n"
-              "サブアセンブリを開いて再度マクロを実行することをお勧めします。"),
-        ("Q", "保存先フォルダが存在しないと言われる",
-         "A", "「フォルダを作成しますか？」というダイアログで「はい」を選択すると\n"
-              "自動的にフォルダが作成されます。\n"
-              "フォルダの作成権限がない場合は管理者に相談してください。"),
-        ("Q", "元のファイルが変更・削除されないか心配",
-         "A", "このマクロは元のファイルを変更・削除しません。\n"
-              "コピー（複製）のみを行います。元ファイルはそのまま残ります。"),
+         "A", "指定した保存先に同じ名前のファイルが既に存在します。\n\n"
+              "  ・「はい」→ そのファイルのみ上書きしてコピー続行\n"
+              "  ・「いいえ」→ そのファイルはスキップして残りは続行\n"
+              "  ・「キャンセル」→ 以降の全ファイルをスキップ"),
+
+        ("Q", "元のファイルが変更されないか心配",
+         "A", "このマクロは元ファイルを一切変更・削除しません。コピーのみを行います。\n"
+              "安心して実行してください。"),
+
+        ("Q", "サブアセンブリ（.sldasm が入れ子になっている）場合はどうする？",
+         "A", "サブアセンブリのファイル名が親ファイル名で始まる場合は、そのファイルも\n"
+              "コピー対象になります。\n\n"
+              "ただし、サブアセンブリが参照している孫ファイルは自動ではコピーされません。\n"
+              "必要な場合は、コピーされたサブアセンブリを開き、同様にマクロを実行してください。"),
     ]
 
     r = 3
-    for i in range(0, len(faqs), 1):
-        q_label, q_text, a_label, a_text = faqs[i]
-
-        # Q
-        apply_cell(ws, r, 2, q_label, bold=True, fg="FFFFFF", bg=COLOR_HEADER_BG,
-                   h="center", v="top", border=True)
-        apply_cell(ws, r, 3, q_text, bold=True, bg=COLOR_STEP_BG, wrap=True,
-                   v="top", border=True)
-        ws.row_dimensions[r].height = max(20, q_text.count("\n") * 14 + 18)
+    for q_lbl, q_txt, a_lbl, a_txt in faqs:
+        cell(ws, r, 2, q_lbl, bold=True, fg=C_HEADER_FG, bg=C_TITLE_BG,
+             h="center", v="top", border=True)
+        cell(ws, r, 3, q_txt, bold=True, bg=C_STEP_BG, wrap=True,
+             v="top", border=True)
+        row_h(ws, r, max(18, q_txt.count("\n") * 14 + 14))
         r += 1
 
-        # A
-        apply_cell(ws, r, 2, a_label, bold=True, fg=COLOR_CAUTION_FG,
-                   bg=COLOR_CAUTION_BG, h="center", v="top", border=True)
-        apply_cell(ws, r, 3, a_text, wrap=True, v="top", border=True)
-        ws.row_dimensions[r].height = max(20, a_text.count("\n") * 14 + 18)
-        r += 1
-        r += 1  # 間隔
-
-    # フッター
-    merge_and_apply(ws, r, 2, r, 3,
-                    "その他の問題は VBA エディタの「表示 → イミディエイトウィンドウ」でログを確認してください。",
-                    fg=COLOR_CAUTION_FG, bg=COLOR_CAUTION_BG, wrap=True)
-    ws.row_dimensions[r].height = 20
+        cell(ws, r, 2, a_lbl, bold=True, fg=C_CAUTION_FG,
+             bg=C_CAUTION_BG, h="center", v="top", border=True)
+        cell(ws, r, 3, a_txt, wrap=True, v="top", border=True)
+        row_h(ws, r, max(18, a_txt.count("\n") * 14 + 14))
+        r += 2
 
 
 # ============================================================
@@ -415,15 +496,14 @@ def build_faq(wb):
 # ============================================================
 def main():
     wb = Workbook()
-
     build_overview(wb)
     build_install(wb)
     build_operation(wb)
     build_faq(wb)
 
-    output_path = "マクロ使用方法ガイド.xlsx"
-    wb.save(output_path)
-    print(f"Excel ガイドを生成しました：{output_path}")
+    out = "マクロ使用方法ガイド.xlsx"
+    wb.save(out)
+    print(f"Excel ガイドを生成しました：{out}")
 
 
 if __name__ == "__main__":

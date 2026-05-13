@@ -9,89 +9,73 @@ SolidWORKS の親アセンブリと子コンポーネントファイルをまと
 
 | ファイル | 説明 |
 |---|---|
-| `RenameAndCopy.bas` | マクロのメインロジック（VBAモジュール） |
-| `frmRenameDialog.frm` | ユーザー入力フォーム（VBA UserForm） |
-| `マクロ使用方法ガイド.xlsx` | 操作説明資料（Excel） |
-| `generate_guide.py` | Excel資料を生成するPythonスクリプト |
+| `generate_bas.py` | **最初に実行**。`RenameAndCopy.bas` を Shift-JIS エンコーディングで生成するスクリプト |
+| `RenameAndCopy.bas` | VBA マクロ本体（`generate_bas.py` で生成、このファイルを SolidWORKS にインポートする） |
+| `マクロ使用方法ガイド.xlsx` | Excel 操作説明資料 |
+| `generate_guide.py` | Excel 資料を再生成するスクリプト |
 
 ---
 
-## 動作概要
+## インストール手順
 
-```
-① SolidWORKS で親アセンブリを開く
-        ↓
-② マクロを起動
-        ↓
-③ ダイアログで新しいアセンブリ名と保存先フォルダを指定
-        ↓
-④ 実行ボタンをクリック
-        ↓
-⑤ 親ファイルと子ファイルのコピーが作成される
-   ・子ファイルの検出ルール：ファイル名が「親ファイル名」で始まるもの
-   ・コピーされた子ファイル名：「新しい親名」＋「元の接尾辞（α）」
-        ↓
-⑥ 「ファイル名を変更しコピーが完了しました。」と表示されて完了
+### ステップ 1：`RenameAndCopy.bas` を生成する
+
+```bash
+python generate_bas.py
 ```
 
-### ファイル名の変換例
+`RenameAndCopy.bas` が同フォルダに作成されます（Shift-JIS エンコーディング）。
 
-```
-親: WIDGET-A.sldasm → GADGET-B.sldasm
-子: WIDGET-A-01.sldprt → GADGET-B-01.sldprt
-子: WIDGET-A-FRAME.sldprt → GADGET-B-FRAME.sldprt
-※ OTHER-PART.sldprt → コピーされない（名前が親で始まらない）
-```
+> **なぜ generate_bas.py で生成するのか？**  
+> VBA エディタ（Windows）は Shift-JIS（CP932）でファイルを読み込みます。  
+> `generate_bas.py` を使うと日本語が文字化けしない .bas ファイルが生成されます。
 
----
-
-## インストール方法
-
-### 1. SolidWORKS でマクロエディタを開く
+### ステップ 2：SolidWORKS でマクロエディタを開く
 
 `Tools（ツール）` → `Macro（マクロ）` → `Edit Macro（マクロを編集）`
 
-### 2. 新しいマクロプロジェクトを作成
+### ステップ 3：新しいマクロプロジェクトを作成する
 
-新規作成し、ファイル名を `RenameAndCopy.swp` として保存。
+- 「新規（New）」をクリック
+- ファイル名 `RenameAndCopy` で保存 → `RenameAndCopy.swp` が作成される
 
-### 3. ファイルをインポート
+### ステップ 4：`RenameAndCopy.bas` をインポートする
 
-VBAエディタのメニュー `File → Import File` で以下の順にインポート：
-1. `RenameAndCopy.bas`
-2. `frmRenameDialog.frm`
+VBA エディタのメニュー `File → Import File...` から `ReneAndCopy.bas` を選択してインポート。
 
-### 4. UserForm のコントロールを配置
+> **UserForm の手動設定は不要です。** `RenameAndCopy.bas` の 1 ファイルだけで動作します。
 
-インポートした `frmRenameDialog` を開き、以下のコントロールを配置してください：
+### ステップ 5：保存
 
-| コントロール名 | 種類 | 用途 |
-|---|---|---|
-| `lblCurrentLabel` | Label | 「現在のアセンブリ名：」 |
-| `lblCurrentName` | Label | 現在のアセンブリ名（自動表示） |
-| `lblNewName` | Label | 「新しいアセンブリ名：」 |
-| `txtNewName` | TextBox | 新しい名前入力欄 |
-| `lblNewNameNote` | Label | 「（拡張子 .sldasm は不要です）」 |
-| `lblFolder` | Label | 「保存先フォルダ：」 |
-| `txtFolder` | TextBox | フォルダパス表示・入力欄 |
-| `btnBrowse` | CommandButton | 「参照...」 |
-| `lblPreview` | Label | 対象子ファイル数のプレビュー表示 |
-| `btnExecute` | CommandButton | 「実行」 |
-| `btnCancel` | CommandButton | 「キャンセル」 |
-
-### 5. 保存
-
-`Ctrl+S` でプロジェクトを保存。
+`Ctrl+S` でマクロを保存。
 
 ---
 
-## 実行方法
+## 使用方法
 
 1. SolidWORKS で親アセンブリ（`.sldasm`）を開く
 2. `Tools → Macro → Run Macro` で `RenameAndCopy.swp` を選択
-3. `StartRenameAndCopy` を選択して「実行」
-4. ダイアログに新しいアセンブリ名と保存先フォルダを入力
-5. 「実行」ボタンをクリック
+3. `StartRenameAndCopy` を選択して「実行（Run）」
+4. ダイアログに従って操作：
+   - **画面①**：現在のアセンブリ名・子ファイル数を確認 → 「はい」
+   - **画面②**：新しいアセンブリ名を入力 → 「OK」（拡張子不要）
+   - **画面③**：保存先フォルダを選択 → 「OK」
+   - **画面④**：実行内容を確認 → 「はい」で実行
+5. 「ファイル名を変更しコピーが完了しました。」で完了
+
+---
+
+## 子ファイルの検出ルール
+
+ファイル名の先頭が親ファイル名と一致するコンポーネントがコピー対象になります。
+
+```
+親: WIDGET-A.sldasm  → 新しい名前: GADGET-B
+
+WIDGET-A-01.sldprt      → ✓ コピー  → GADGET-B-01.sldprt
+WIDGET-A-FRAME.sldprt   → ✓ コピー  → GADGET-B-FRAME.sldprt
+OTHER-PART.sldprt       → ✗ 対象外（コピーされない）
+```
 
 ---
 
@@ -99,12 +83,11 @@ VBAエディタのメニュー `File → Import File` で以下の順にイン�
 
 - **実行前に必ずバックアップを取得してください**
 - 元のファイルは変更・削除されません（コピーのみ）
-- 子ファイルが他のプロセスで開かれている場合はコピーに失敗することがあります
 - SolidWORKS 2020 以降推奨
 
 ---
 
-## Excel 操作説明資料の再生成
+## Excel 資料の再生成
 
 ```bash
 pip install openpyxl
