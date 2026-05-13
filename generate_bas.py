@@ -446,13 +446,13 @@ End Function
 ' ============================================================
 Function SafeCopyFile(src As String, dst As String) As Boolean
 
-    Const CHUNK As Long = 524288  ' 512KB ずつ読み書き
+    Const CHUNK_SIZE As Long = 524288  ' 512KB ずつ読み書き
 
-    Dim fn1 As Integer
-    Dim fn2 As Integer
-    Dim buf() As Byte
+    Dim fn1      As Integer
+    Dim fn2      As Integer
+    Dim buf()    As Byte
     Dim remaining As Long
-    Dim chunk    As Long
+    Dim chunkLen As Long
     Dim fileLen  As Long
 
     SafeCopyFile = False
@@ -469,12 +469,12 @@ Function SafeCopyFile(src As String, dst As String) As Boolean
     ' ファイルサイズが 0 の場合もそのままコピー（空ファイル）
     remaining = fileLen
     Do While remaining > 0
-        chunk = remaining
-        If chunk > CHUNK Then chunk = CHUNK
-        ReDim buf(chunk - 1)
+        chunkLen = remaining
+        If chunkLen > CHUNK_SIZE Then chunkLen = CHUNK_SIZE
+        ReDim buf(chunkLen - 1)
         Get #fn1, , buf
         Put #fn2, , buf
-        remaining = remaining - chunk
+        remaining = remaining - chunkLen
     Loop
 
     Close #fn1
