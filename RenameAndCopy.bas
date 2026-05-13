@@ -255,7 +255,7 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
 
     For i = 0 To mapCount - 1
         If FileExists(mapNew(i)) Then
-            newModel.Extension.ReplaceReferencedDocument mapOld(i), mapNew(i)
+            newModel.ReplaceReferencedDocument mapOld(i), mapNew(i)
         End If
     Next i
 
