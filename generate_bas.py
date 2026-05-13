@@ -212,8 +212,12 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
                          vbQuestion + vbYesNoCancel, "上書き確認")
             Select Case ans
                 Case vbYes
-                    FileCopy src, dst
-                    successCount = successCount + 1
+                    If Not SafeCopyFile(src, dst) Then
+                        failCount = failCount + 1
+                        MsgBox "コピーに失敗しました：" & vbCrLf & src, vbExclamation, "コピー失敗"
+                    Else
+                        successCount = successCount + 1
+                    End If
                 Case vbNo
                     ' このファイルだけスキップ
                 Case vbCancel
@@ -221,9 +225,13 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
             End Select
 
         ElseIf Not skipAll Then
-            FileCopy src, dst
-            successCount = successCount + 1
-            Debug.Print "コピー完了: " & src & " → " & dst
+            If Not SafeCopyFile(src, dst) Then
+                failCount = failCount + 1
+                MsgBox "コピーに失敗しました：" & vbCrLf & src, vbExclamation, "コピー失敗"
+            Else
+                successCount = successCount + 1
+                Debug.Print "コピー完了: " & src & " → " & dst
+            End If
         End If
     Next i
 
@@ -241,7 +249,10 @@ Sub ExecuteRenameAndCopy(swApp As Object, swModel As Object, _
         End If
     End If
 
-    FileCopy parentPath, newAssyPath
+    If Not SafeCopyFile(parentPath, newAssyPath) Then
+        MsgBox "親アセンブリのコピーに失敗しました：" & vbCrLf & parentPath, vbCritical, "エラー"
+        Exit Sub
+    End If
 
     ' ---- コピーした親を開いて参照を更新 ----
     Dim openErrors   As Long
@@ -423,6 +434,61 @@ Function FileExists(filePath As String) As Boolean
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
     FileExists = fso.FileExists(filePath)
+End Function
+
+' ============================================================
+' ファイルコピー（SolidWORKS ロック中ファイル対応版）
+' ============================================================
+' SolidWORKS が開いているファイルは FileCopy でエラー70が発生するため、
+' VBA バイナリI/O（Open...For Binary）でコピーする。
+' バイナリI/O は共有読み取りアクセスを使用するため、
+' 他のプロセスがファイルを開いていてもコピーできる。
+' ============================================================
+Function SafeCopyFile(src As String, dst As String) As Boolean
+
+    Const CHUNK As Long = 524288  ' 512KB ずつ読み書き
+
+    Dim fn1 As Integer
+    Dim fn2 As Integer
+    Dim buf() As Byte
+    Dim remaining As Long
+    Dim chunk    As Long
+    Dim fileLen  As Long
+
+    SafeCopyFile = False
+
+    On Error GoTo CopyFailed
+
+    fn1 = FreeFile
+    Open src For Binary Access Read As #fn1
+    fileLen = LOF(fn1)
+
+    fn2 = FreeFile
+    Open dst For Binary Access Write As #fn2
+
+    ' ファイルサイズが 0 の場合もそのままコピー（空ファイル）
+    remaining = fileLen
+    Do While remaining > 0
+        chunk = remaining
+        If chunk > CHUNK Then chunk = CHUNK
+        ReDim buf(chunk - 1)
+        Get #fn1, , buf
+        Put #fn2, , buf
+        remaining = remaining - chunk
+    Loop
+
+    Close #fn1
+    Close #fn2
+    SafeCopyFile = True
+    Exit Function
+
+CopyFailed:
+    On Error Resume Next
+    Close #fn1
+    Close #fn2
+    Debug.Print "SafeCopyFile 失敗: " & src & " → " & dst & " (Err=" & Err.Number & ": " & Err.Description & ")"
+    SafeCopyFile = False
+
 End Function
 """
 
