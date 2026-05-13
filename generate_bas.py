@@ -160,8 +160,9 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
                      newName As String, destFolder As String)
 
     ' Pack and Go オブジェクトを取得
+    ' GetPackAndGo(False) = 図面ファイル（.slddrw）を含めない
     Dim packAndGo As Object
-    Set packAndGo = swModel.Extension.GetPackAndGo()
+    Set packAndGo = swModel.Extension.GetPackAndGo(False)
 
     If packAndGo Is Nothing Then
         MsgBox "Pack and Go API が利用できません。" & vbCrLf & _
@@ -180,8 +181,8 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
         Exit Sub
     End If
 
-    Dim fileNames() As String
-    ReDim fileNames(nCount - 1)
+    ' Pack and Go API は Variant 型配列を使用する
+    Dim fileNames As Variant
     packAndGo.GetFileNames fileNames
 
     ' 親名プレフィックスに一致するファイルのパスを新しい名前に変更
@@ -192,11 +193,11 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
 
     For i = 0 To nCount - 1
         Dim bn As String
-        bn = GetBaseNameFromPath(fileNames(i))
+        bn = GetBaseNameFromPath(CStr(fileNames(i)))
 
         If StrComp(Left(bn, Len(parentBase)), parentBase, vbTextCompare) = 0 Then
             Dim alpha As String
-            alpha = GetAlphaSuffix(fileNames(i), parentBase)
+            alpha = GetAlphaSuffix(CStr(fileNames(i)), parentBase)
             fileNames(i) = destFolder & newName & alpha
             renamed = renamed + 1
         End If
@@ -214,8 +215,8 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
 
     ' Pack and Go を実行
     ' （ファイルコピー＋アセンブリ内参照パス更新を自動処理）
-    Dim errors() As Long
-    ReDim errors(nCount - 1)
+    ' Save() のエラーコードも Variant 型配列で受け取る
+    Dim errors  As Variant
     Dim nErrors As Long
 
     On Error GoTo PackAndGoFailed
@@ -229,8 +230,12 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
         errList = ""
         Dim j As Long
         For j = 0 To nCount - 1
-            If errors(j) <> 0 Then
-                errList = errList & "・" & GetFileNameFromPath(fileNames(j)) & vbCrLf
+            If IsArray(errors) Then
+                If j <= UBound(errors) Then
+                    If CLng(errors(j)) <> 0 Then
+                        errList = errList & "・" & GetFileNameFromPath(CStr(fileNames(j))) & vbCrLf
+                    End If
+                End If
             End If
         Next j
         MsgBox "処理は完了しましたが、一部エラーがありました（" & nErrors & "件）：" & _
