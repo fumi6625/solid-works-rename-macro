@@ -148,12 +148,40 @@ Sub ExecutePackAndGo(swModel As Object, parentBase As String, _
                      newName As String, destFolder As String)
 
     ' Pack and Go オブジェクトを取得
-    ' GetPackAndGo(False) = 図面ファイル（.slddrw）を含めない
+    ' SolidWORKS のバージョンにより引数の型・有無が異なるため
+    ' 複数のパターンを順に試みる
     Dim packAndGo As Object
-    Set packAndGo = swModel.Extension.GetPackAndGo(False)
+    Dim pgErr     As Long
+
+    On Error Resume Next
+
+    Err.Clear
+    Set packAndGo = swModel.Extension.GetPackAndGo(0&)
+    pgErr = Err.Number
+
+    If pgErr <> 0 Or packAndGo Is Nothing Then
+        Err.Clear
+        Set packAndGo = swModel.Extension.GetPackAndGo(1&)
+        pgErr = Err.Number
+    End If
+
+    If pgErr <> 0 Or packAndGo Is Nothing Then
+        Err.Clear
+        Set packAndGo = swModel.Extension.GetPackAndGo(True)
+        pgErr = Err.Number
+    End If
+
+    If pgErr <> 0 Or packAndGo Is Nothing Then
+        Err.Clear
+        Set packAndGo = swModel.Extension.GetPackAndGo()
+        pgErr = Err.Number
+    End If
+
+    On Error GoTo 0
 
     If packAndGo Is Nothing Then
         MsgBox "Pack and Go API が利用できません。" & vbCrLf & _
+               "エラー番号：" & pgErr & vbCrLf & _
                "SolidWORKS のバージョンを確認してください。", vbCritical, "エラー"
         Exit Sub
     End If
